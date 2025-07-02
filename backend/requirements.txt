@@ -1,0 +1,13 @@
+fastapi
+python-dotenv
+pydantic
+bcrypt
+SQLAlchemy
+python-jose
+llama-index
+langchain
+openai
+langchain-community
+langchain-ollama
+uvicorn
+psycopg2-binary
