@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     SECRET_KEY:str
     ALGORITHM:str
     VITE_API_URL: str 
+    APP_PASSWORD: str
+    SENDER_EMAIL: str
     class Config:
         env_file = ".env"
 

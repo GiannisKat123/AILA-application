@@ -7,12 +7,12 @@ from backend.database.config.config import settings
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import os
+import logging
 
 app = FastAPI()
+logger = logging.getLogger("uvicorn")
 
 url = settings.FRONTEND_URL
-
-
 
 app.add_middleware(
     CORSMiddleware,

@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Response, HTTPException, Cookie
 import json
-from backend.api.models import UserCredentials, ConversationCreationDetails, NewMessage, Message
-from backend.database.core.funcs import login_user, update_token, get_user_messages, get_conversations, create_conversation, create_message
+from backend.api.models import UserFeedback,UserOpenData,VerifCode,UserCredentials, ConversationCreationDetails, UserData ,NewMessage, Message
+from backend.database.core.funcs import set_feedback,resend_ver_code,check_verification_code, check_create_user_instance ,login_user, update_token, get_user_messages, get_conversations, create_conversation, create_message
 from backend.api.utils import create_access_token, verify_token, initialize_model
 from fastapi.responses import StreamingResponse
+from backend.crypt.encrypt_decrypt import EncryptionDec
 
 router = APIRouter()
 llm = initialize_model()
@@ -12,7 +13,8 @@ llm = initialize_model()
 async def login(data:UserCredentials, response:Response):
     auth = login_user(username=data.username, password=data.password)
     if auth['authenticated']:
-        access_token = create_access_token({'sub':f"{auth['user_details']['username']}+?{auth['user_details']['email']}"})
+        print(auth)
+        access_token = create_access_token({'sub':f"{auth['user_details']['username']}+?{auth['user_details']['email']}+?{auth['user_details']['verified']}"})
         print("ACCESS TOKEN: ",access_token)
         update_token(username=auth['user_details']['username'], token=access_token)
         response.set_cookie(
@@ -26,11 +28,38 @@ async def login(data:UserCredentials, response:Response):
     else:
         raise HTTPException(status_code=401,detail=auth['detail'])     
 
+
+@router.post('/register')
+async def register(data:UserData):
+    res = check_create_user_instance(username = data.username, password= data.password, email= data.email)
+    if res['res']:
+        return True
+    else:
+        raise HTTPException(status_code=401,detail=res['detail'])  
+ 
+
+@router.post('/verify')
+async def verify(data:VerifCode):
+    res = check_verification_code(username=data.username,user_code=data.code)
+    if res['res']:
+        return True
+    else:
+        return False
+
+@router.post('/resend-code')
+async def resend_code(data:UserOpenData):
+    try:
+        resend_ver_code(username=data.username,email=data.email)
+        return True 
+    except Exception as e:
+        raise e
+    
+
 @router.post('/new_conversation')
 async def new_conversation(data:ConversationCreationDetails):
     try:
-        conversation_name = create_conversation(username=data.username,conversation_name=data.conversation_name)
-        return conversation_name
+        conversation = create_conversation(username=data.username,conversation_name=data.conversation_name)
+        return conversation
     except Exception as e:
         raise HTTPException(status_code=403, detail=e.detail)
     
@@ -38,7 +67,7 @@ async def new_conversation(data:ConversationCreationDetails):
 async def new_message(data:NewMessage):
     print(data)
     try:
-        message = create_message(conversation_name=data.conversation_name, text = data.text, role = data.role)
+        message = create_message(conversation_name=data.conversation_name, text = data.text, role = data.role, id=data.id, feedback=data.feedback)
         return message
     except HTTPException as e:
         raise HTTPException(status_code=403, detail=e.detail)  
@@ -47,6 +76,7 @@ async def new_message(data:NewMessage):
 async def get_user_conversations(token:str = Cookie(None),username:str=''):
     try:
         conversations = get_conversations(username=username)
+        print(conversations)
         return conversations
     except HTTPException as e:
         raise HTTPException(status_code=403, detail=e.detail)  
@@ -70,6 +100,13 @@ async def get_messages(token:str = Cookie(None),conversation_name:str=''):
     except HTTPException as e:
         raise HTTPException(status_code=403, detail=e.detail)      
 
+@router.post('/user_feedback')
+def user_feedback(data:UserFeedback):
+    try:
+        set_feedback(message_id=data.message_id,conversation_id=data.conversation_id,feedback=data.feedback)
+    except Exception as e:
+        raise e
+
 @router.get('/get_user')
 def get_user(token: str = Cookie(None)):
     print("Access token:", token)
@@ -80,7 +117,15 @@ def get_user(token: str = Cookie(None)):
         if user:
             username = user.split('+?')[0]
             email = user.split('+?')[1]
-            return {"username":username,"email":email}
+            verified = user.split('+?')[2]
+            print("Verified:",verified)
+            if 'true' in str(verified).lower():
+                verified = True
+            elif 'false' in str(verified).lower():
+                verified = False
+            else:
+                verified = None
+            return {"username":username,"email":email,'verified':verified}
         else:
             raise HTTPException(status_code=401, detail='Invalid or expired token')
     except HTTPException as e:

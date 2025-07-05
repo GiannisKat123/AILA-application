@@ -28,3 +28,12 @@ class UserMessagesDao:
         except Exception as e:
             print(f"Error in UserMessagesDao.fetchMessages. Error Massage: {e}")
             raise e
+        
+    def updateMessageFeedback(self,session:Session,conversation_id:UUID, message_id:UUID,feedback:bool):
+        try: 
+            message = session.query(UserMessage).filter(UserMessage.id == message_id,UserMessage.conversation_id==conversation_id).one()
+            message.feedback = feedback
+            session.commit()
+        except Exception as e:
+            print(f"Error in UserMessagesDao.updateMessageFeedback. Error Massage: {e}")
+            raise e

@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const Login = () => {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
-    const { loginUser } = useAuth();
+    const { loginUser, resendCode } = useAuth();
     const [errorMsg, setErrorMessage] = useState("");
     const [isLoading, setIsLoading] = useState(false);
 
@@ -24,18 +24,38 @@ const Login = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
+        setErrorMessage(""); 
+
         try {
-            await loginUser(username, password);
-            navigate("/chat");
+            const res = await loginUser(username, password);
+
+            if (res && res.user_details) {
+                const { verified, email } = res.user_details;
+
+                if (verified) {
+                    navigate("/chat");
+                } else {
+                    await resendCode(username, email);
+                    navigate("/register");
+                }
+            } else {
+                // Login failed — wrong credentials, user not found, etc.
+                setErrorMessage("Login failed. Please check your credentials.");
+                errRef.current?.focus();
+                setUsername("");
+                setPassword("");
+            }
         } catch (err) {
-            setUsername("");
-            setPassword("");
+            console.error("Login error:", err);
             setErrorMessage("Login failed. Please check your credentials.");
             errRef.current?.focus();
+            setUsername("");
+            setPassword("");
         } finally {
             setIsLoading(false);
         }
     };
+
 
     return (
         <div className="min-h-screen bg-gray-100 text-gray-800 px-4 py-8">
@@ -103,6 +123,9 @@ const Login = () => {
                         >
                             {isLoading ? "Signing In..." : "Submit"}
                         </button>
+                    </div>
+                    <div className="pt-2">
+                        If you do not have an account yet ... Sign up <Link to='/register'>here</Link>
                     </div>
                 </form>
             </div>
