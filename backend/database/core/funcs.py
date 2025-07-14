@@ -19,6 +19,7 @@ def login_user(session:Session,username:str,password:str) -> UserAuthentication:
     user_dao = UserDao()
     enc = EncryptionDec()
     users_fetched = user_dao.fetchUser(session,username)
+    print(username,password,users_fetched)
     if len(users_fetched) == 0:
         return {
             'authenticated':False,
@@ -47,8 +48,10 @@ def check_create_user_instance(session:Session, username:str, password:str, emai
     user_email_in_database = user_dao.fetchUserByEmail(session=session,email=email)
     print(username,password,email)
     if len(user_in_database) > 0:
+        print({'res':False,'detail':'User already exists'})
         return {'res':False,'detail':'User already exists'}
     elif len(user_email_in_database) > 0:
+        print({'res':False,'detail':'Email already exists'})
         return {'res':False,'detail':'Email already exists'}
     elif enc.is_valid_password(password):
         code = enc.generate_verification_code()
@@ -62,6 +65,7 @@ def check_create_user_instance(session:Session, username:str, password:str, emai
             date_created_on=datetime.now(timezone.utc).isoformat()
         )
         res = user_dao.createUser(session=session,user_data=user)
+        print(res)
         if res: 
             send_verification_code(email=email,code = code)
             return {'res':True, 'detail':code}

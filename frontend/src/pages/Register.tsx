@@ -30,29 +30,6 @@ const Register = () => {
         }
     }, [])
 
-    // useEffect(() => {
-    //     if (verified === false) {
-    //         setVerified(false)
-    //     }
-    // }, [])
-
-    // useEffect(() => {
-    //     if (verified === false) {
-    //         setTimeLeft(120); // Reset on verified
-    //         const interval = setInterval(() => {
-    //             setTimeLeft((prev) => {
-    //                 if (prev <= 1) {
-    //                     clearInterval(interval);
-    //                     return 0;
-    //                 }
-    //                 return prev - 1;
-    //             });
-    //         }, 1000);
-
-    //         return () => clearInterval(interval);
-    //     }
-    // }, [verified]);
-
     useEffect(() => {
         if (verified === false) {
             setTimeLeft(120);
@@ -75,7 +52,7 @@ const Register = () => {
     }, [timerKey]);
 
     useEffect(() => {
-        setErrorMessage("");
+
     }, [username, email, password, password_1]);
 
     const handleVerificationCode = async (e: React.FormEvent) => {
@@ -83,15 +60,20 @@ const Register = () => {
         setIsLoading(true);
         try {
             const res = await verifyCodeUser(username, verificationCode);
-            if (res) {
+            if (typeof res === 'boolean' && res === true) {
                 setVerified(true);
                 navigate('/chat');
-            } else {
-                setErrorMessage("Verification code is not correct");
+            } else if (typeof res === 'object' && 'error_message' in res) {
+                setVerificationCode("");
+                setErrorMessage(res.error_message);
+            }
+            else {
+                setVerificationCode("");
+                setErrorMessage("User Verification failed");
             }
         } catch (err) {
             setVerificationCode("");
-            setErrorMessage("Verification code is not correct");
+            setErrorMessage("User Verification failed");
             errRef.current?.focus();
         } finally {
             setIsLoading(false);
@@ -117,22 +99,47 @@ const Register = () => {
         setIsLoading(true);
         if (password === password_1) {
             try {
-                await RegisterUser(username, password_1, email);
-                setVerified(false);
-                setPassword("");
-                setNewPassword("");
+                const res = await RegisterUser(username, password_1, email);
+                if (res === true) {
+                    setVerified(false);
+                    setPassword("");
+                    setNewPassword("");
+                }
+                else if (res && "error_message" in res) {
+                    setUsername("");
+                    setPassword("");
+                    setNewPassword("");
+                    setEmail("");
+                    setErrorMessage(res.error_message);
+                    errRef.current?.focus();
+                }
+                else {
+                    setUsername("");
+                    setPassword("");
+                    setNewPassword("");
+                    setEmail("");
+                    setErrorMessage("Registratiion failed. Something happened");
+                    errRef.current?.focus();
+                }
+
             } catch (err) {
                 setUsername("");
                 setPassword("");
                 setNewPassword("");
                 setEmail("")
-                setErrorMessage("Login failed. Please check your credentials.");
+                setErrorMessage(`Registratiion failed. Something happened ${err}`);
                 errRef.current?.focus();
             } finally {
                 setIsLoading(false);
             }
         } else {
+            setUsername("");
+            setPassword("");
+            setNewPassword("");
+            setEmail("")
             setErrorMessage("Registration failed. Passwords do not match");
+            errRef.current?.focus();
+            setIsLoading(false);
         }
     };
 
@@ -317,8 +324,14 @@ const Register = () => {
                                 {isLoading ? "Signing Up..." : "Submit"}
                             </button>
                         </div>
-                        <div className="pt-2">
-                            If you do have an account just Sign In <Link to='/login'>here</Link>
+                        <div className="pt-4 text-sm text-center text-gray-600">
+                            <span>If you do have an account just</span>{' '}
+                            <Link
+                                to="/login"
+                                className="font-semibold text-blue-600 hover:underline hover:text-blue-800 transition-colors"
+                            >
+                                Sign In here
+                            </Link>
                         </div>
                     </form>
                 </div>

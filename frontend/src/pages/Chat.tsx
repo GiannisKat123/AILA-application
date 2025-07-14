@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import type { Message, Conversations } from '../models/Types';
 import { Menu, X, User, Bot } from 'lucide-react'; // install `lucide-react` or use your preferred icon library
+import { motion } from "framer-motion";
+
 
 const Chat = () => {
     const [messages, setMessages] = useState<Message[]>([]);
@@ -218,6 +220,22 @@ const Chat = () => {
                 <h1 className="text-xl font-bold text-center mt-4 mb-2 hidden md:block">
                     AILA INTERFACE DEMO
                 </h1>
+
+                {/* Welcome Message */}
+                {/* {user?.username && (
+                    <div className="text-sm md:text-base text-gray-700 text-center mb-4">
+                        Welcome, <span className="font-semibold text-blue-700">{user.username}</span>
+                    </div>
+                )} */}
+
+                <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4 }}
+                    className="text-sm md:text-base text-gray-700 text-center mb-4"
+                >
+                    Welcome, <span className="font-semibold text-blue-700">{user?.username}</span>
+                </motion.div>
 
                 {/* Chat Container */}
                 <div ref={chatRef} className="flex-1 w-full max-w-4xl px-6 overflow-y-auto">

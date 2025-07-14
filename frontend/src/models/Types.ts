@@ -20,3 +20,7 @@ export type Conversations = {
     conversation_name: string;
     conversation_id: string;
 }
+
+export type ErrorMessage = {
+   error_message: string;
+}

@@ -24,30 +24,35 @@ const Login = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
-        setErrorMessage(""); 
+        setErrorMessage("");
 
         try {
             const res = await loginUser(username, password);
 
-            if (res && res.user_details) {
+            if (res && "user_details" in res) {
                 const { verified, email } = res.user_details;
-
                 if (verified) {
                     navigate("/chat");
                 } else {
                     await resendCode(username, email);
                     navigate("/register");
                 }
-            } else {
+            } else if (res && "error_message" in res) {
+                setErrorMessage(res.error_message);
+                errRef.current?.focus();
+                setUsername("");
+                setPassword("");
+            }
+            else {
                 // Login failed — wrong credentials, user not found, etc.
-                setErrorMessage("Login failed. Please check your credentials.");
+                setErrorMessage("Login failed. Something happened");
                 errRef.current?.focus();
                 setUsername("");
                 setPassword("");
             }
         } catch (err) {
             console.error("Login error:", err);
-            setErrorMessage("Login failed. Please check your credentials.");
+            setErrorMessage(String(err));
             errRef.current?.focus();
             setUsername("");
             setPassword("");
@@ -124,8 +129,14 @@ const Login = () => {
                             {isLoading ? "Signing In..." : "Submit"}
                         </button>
                     </div>
-                    <div className="pt-2">
-                        If you do not have an account yet ... Sign up <Link to='/register'>here</Link>
+                    <div className="pt-4 text-sm text-center text-gray-600">
+                        <span>If you do not have an account yet...</span>{' '}
+                        <Link
+                            to="/register"
+                            className="font-semibold text-blue-600 hover:underline hover:text-blue-800 transition-colors"
+                        >
+                            Sign Up here
+                        </Link>
                     </div>
                 </form>
             </div>

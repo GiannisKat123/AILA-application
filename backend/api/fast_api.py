@@ -44,7 +44,7 @@ async def verify(data:VerifCode):
     if res['res']:
         return True
     else:
-        return False
+        raise HTTPException(status_code=401,detail=res['detail']) 
 
 @router.post('/resend-code')
 async def resend_code(data:UserOpenData):

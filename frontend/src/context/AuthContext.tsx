@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { loginAPI, getUserMessagesAPI, userFeedbackAPI, resendCodeAPI, verifyAPI, logoutAPI, registerAPI, verifyUser, createConversationAPI, createMessageAPI, getConversationsAPI } from '../services/AuthService';
-import type { LoginAPIOutput, UserProfile, Message, Conversations } from '../models/Types';
+import type { LoginAPIOutput, UserProfile, Message, Conversations, ErrorMessage } from '../models/Types';
 
 
 interface AuthContextType {
@@ -12,11 +12,11 @@ interface AuthContextType {
     createConversation: (conversation_name: string, username: string) => Promise<Conversations | undefined>;
     createMessage: (conversation_name: string, text: string, role: string, id: string, feedback: boolean | null) => Promise<void>;
     fetchUserMessages: (conversation_name: string) => Promise<void>;
-    loginUser: (username: string, password: string) => Promise<LoginAPIOutput> | null;
+    loginUser: (username: string, password: string) => Promise<LoginAPIOutput | ErrorMessage> | null;
     logoutUser: () => Promise<void>;
     fetchConversations: (username: string) => Promise<void>;
-    RegisterUser: (username: string, password: string, email: string) => Promise<void>;
-    verifyCodeUser: (username: string, code: string) => Promise<boolean>;
+    RegisterUser: (username: string, password: string, email: string) => Promise<boolean | ErrorMessage>;
+    verifyCodeUser: (username: string, code: string) => Promise<boolean|ErrorMessage>;
     resendCode: (username: string, email: string) => Promise<void>;
     userFeedback: (message_id: string, conversation_id: string, feedback: boolean) => Promise<void>;
 }
@@ -29,39 +29,48 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [conversations, setConversations] = useState<Conversations[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const RegisterUser = async (username: string, password: string, email: string): Promise<void> => {
+    const RegisterUser = async (username: string, password: string, email: string): Promise<boolean | ErrorMessage> => {
         try {
             const res = await registerAPI(username, password, email);
             console.log(res);
-            if (res) {
+            if (res && res === true) {
                 setUser({ username: username, email: email, verified: false })
+                return true;
             }
-            else {
+            else if (res && typeof res === 'object' && 'error_message' in res){
                 setUser(null);
-                throw new Error("Registration failed: No response from API");
+                return {error_message:res.error_message}
+            }
+            else{
+                setUser(null);
+                return {error_message:'Something went wrong in registration'}
             }
         }
         catch (err) {
-            console.error("Registration failed", err);
             setUser(null);
-            throw err;
+            return {error_message:String(err)};
         }
     }
 
-    const verifyCodeUser = async (username: string, code: string): Promise<boolean> => {
+    const verifyCodeUser = async (username: string, code: string): Promise<boolean|ErrorMessage> => {
         try {
             const res = await verifyAPI(username, code);
-            if (res) {
+            console.log("RESULT",res);
+            if (res === true) {
                 return true;
+            }   
+            else if (res && typeof res == 'object' && 'error_message' in res){
+                return {error_message:res.error_message}
             }
-            else {
-                return false;
+            else{
+                console.log("WHAT",res);
+                return {error_message:'Something went wrong in verification'}
             }
         }
         catch (err) {
             console.error("Verification failed", err);
             setUser(null);
-            throw err;
+            return {error_message:String(err)};
         }
     }
 
@@ -99,23 +108,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }
 
-    const loginUser = async (username: string, password: string): Promise<LoginAPIOutput> => {
+
+
+    const loginUser = async (username: string, password: string): Promise<LoginAPIOutput | ErrorMessage> => {
         try {
             const res = await loginAPI(username, password);
-            if (res) {
+            console.log(res)
+            if (res && typeof res === 'object' && "user_details" in res) {
                 console.log(res.user_details)
                 setUser({ username: res.user_details.username, email: res.user_details.email, verified: res.user_details.verified })
                 return res;
             }
-            else {
+            else if (res && typeof res === 'object' && "error_message" in res) {
                 setUser(null);
-                throw new Error("Login failed: No response from API");
+                return {error_message : res.error_message}
             }
+            // Ensure a return value in all cases
+            setUser(null);
+            return {error_message : "Unknown error during login"};
         }
         catch (err) {
             console.error("Login failed", err);
             setUser(null);
-            throw err;
+            return {error_message : String(err)}
         }
     }
 

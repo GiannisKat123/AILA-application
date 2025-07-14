@@ -1,44 +1,55 @@
+import axios from 'axios';
 import api from '../api/axios';
-import type { LoginAPIOutput, UserProfile, Message, Conversations } from '../models/Types';
+import type { LoginAPIOutput, UserProfile, Message, Conversations, ErrorMessage } from '../models/Types';
 
-const loginAPI = async (username: string, password: string): Promise<LoginAPIOutput | undefined> => {
+const loginAPI = async (username: string, password: string): Promise<LoginAPIOutput | ErrorMessage> => {
     try {
         const response = await api.post('/login', { username: username, password: password }, { withCredentials: true });
         return response.data;
     }
     catch (err) {
-        if (err instanceof Error) {
-            console.error(err.message);
-        } else {
-            console.error(err);
+        console.log("Error", err);
+        if (axios.isAxiosError(err)) {
+            console.log(err.response?.data.detail);
+            return { error_message: err.response?.data.detail };
+        }
+        else {
+            console.error("Non-Axios error:", err);
+            return { error_message: String(err) };
         }
     }
 }
 
-const registerAPI = async (username: string, password: string, email: string): Promise<boolean | undefined> => {
+const registerAPI = async (username: string, password: string, email: string): Promise<boolean | ErrorMessage> => {
     try {
         const response = await api.post('/register', { username: username, password: password, email: email }, { withCredentials: true });
         return response.data;
     }
     catch (err) {
-        if (err instanceof Error) {
-            console.error(err.message);
-        } else {
-            console.error(err);
+        if (axios.isAxiosError(err)) {
+            console.log(err.response?.data.detail);
+            return { error_message: err.response?.data.detail };
+        }
+        else {
+            console.error("Non-Axios error:", err);
+            return { error_message: String(err) };
         }
     }
 }
 
-const verifyAPI = async (username: string, code: string): Promise<boolean | undefined> => {
+const verifyAPI = async (username: string, code: string): Promise<boolean | ErrorMessage> => {
     try {
         const response = await api.post('/verify', { username: username, code: code }, { withCredentials: true });
         return response.data;
     }
     catch (err) {
-        if (err instanceof Error) {
-            console.error(err.message);
-        } else {
-            console.error(err);
+        if (axios.isAxiosError(err)) {
+            console.log(err.response?.data.detail);
+            return { error_message: err.response?.data.detail };
+        }
+        else {
+            console.error("Non-Axios error:", err);
+            return { error_message: String(err) };
         }
     }
 }
@@ -57,7 +68,7 @@ const resendCodeAPI = async (username: string, email: string): Promise<boolean |
     }
 }
 
-const userFeedbackAPI = async (message_id: string, conversation_id: string, feedback: boolean | undefined): Promise<boolean|undefined> => {
+const userFeedbackAPI = async (message_id: string, conversation_id: string, feedback: boolean | undefined): Promise<boolean | undefined> => {
     try {
         await api.post('/user_feedback', { message_id: message_id, conversation_id: conversation_id, feedback: feedback }, { withCredentials: true })
         return true;
