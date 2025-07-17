@@ -10,8 +10,8 @@ interface AuthContextType {
     conversations: Conversations[] | null;
     loading: boolean;
     createConversation: (conversation_name: string, username: string) => Promise<Conversations | undefined>;
-    createMessage: (conversation_name: string, text: string, role: string, id: string, feedback: boolean | null) => Promise<void>;
-    fetchUserMessages: (conversation_name: string) => Promise<void>;
+    createMessage: (conversation_id: string, text: string, role: string, id: string, feedback: boolean | null) => Promise<void>;
+    fetchUserMessages: (conversation_id: string) => Promise<void>;
     loginUser: (username: string, password: string) => Promise<LoginAPIOutput | ErrorMessage> | null;
     logoutUser: () => Promise<void>;
     fetchConversations: (username: string) => Promise<void>;
@@ -151,6 +151,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     const fetchConversations = async (username: string) => {
+        console.log("Username to get conversations:",username);
         try {
             const res = await getConversationsAPI(username);
             if (res) {
@@ -162,10 +163,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }
 
-    const createMessage = async (conversation_name: string, text: string, role: string, id: string, feedback: boolean | null) => {
+    const createMessage = async (conversation_id: string, text: string, role: string, id: string, feedback: boolean | null) => {
         try {
-            const res = await createMessageAPI(conversation_name, text, role, id, feedback);
-            const newMessage = { conversation_name, message: text, role, id, feedback, timestamp: new Date().toISOString() };
+            const res = await createMessageAPI(conversation_id, text, role, id, feedback);
+            const newMessage = { conversation_id, message: text, role, id, feedback, timestamp: new Date().toISOString() };
             if (res) {
                 setMessages(prev => [...(prev ?? []), newMessage])
             }
@@ -174,13 +175,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             }
         }
         catch (err) {
-            console.error(`Could not create new Message with name:${conversation_name}, message: ${text}. Error:`, err);
+            console.error(`Could not create new Message with id:${conversation_id}, message: ${text}. Error:`, err);
         }
     }
 
-    const fetchUserMessages = async (conversation_name: string) => {
+    const fetchUserMessages = async (conversation_id: string) => {
         try {
-            const messages = await getUserMessagesAPI(conversation_name);
+            const messages = await getUserMessagesAPI(conversation_id);
             if (messages) {
                 console.log(messages)
                 setMessages(messages);
@@ -190,7 +191,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             }
         }
         catch (err) {
-            console.error(`Messages were not fetched from user in conversation ${conversation_name}`, err);
+            console.error(`Messages were not fetched from user in conversation ${conversation_id}`, err);
             setMessages(null);
         }
     }

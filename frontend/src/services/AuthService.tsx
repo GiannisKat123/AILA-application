@@ -96,10 +96,10 @@ const createConversationAPI = async (conversation_name: string, username: string
     }
 }
 
-const createMessageAPI = async (conversation_name: string, text: string, role: string, id: string, feedback: boolean | null): Promise<Message | undefined> => {
-    console.log({ conversation_name: conversation_name, text: text, role: role, id: id, feedback: feedback })
+const createMessageAPI = async (conversation_id: string, text: string, role: string, id: string, feedback: boolean | null): Promise<Message | undefined> => {
+    console.log({ conversation_id: conversation_id, text: text, role: role, id: id, feedback: feedback })
     try {
-        const response = await api.post('/new_message', { conversation_name: conversation_name, text: text, role: role, id: id, feedback: feedback }, { withCredentials: true });
+        const response = await api.post('/new_message', { conversation_id: conversation_id, text: text, role: role, id: id, feedback: feedback }, { withCredentials: true });
         return response.data
     }
     catch (err) {
@@ -128,9 +128,9 @@ const getConversationsAPI = async (username: string): Promise<Conversations[] | 
     }
 }
 
-const getUserMessagesAPI = async (conversation_name: string): Promise<Message[] | undefined> => {
+const getUserMessagesAPI = async (conversation_id: string): Promise<Message[] | undefined> => {
     const response = await api.get('/messages', {
-        params: { conversation_name },
+        params: { conversation_id },
         withCredentials: true
     });
     console.log("Response: ", response.data)

@@ -36,7 +36,7 @@ const Chat = () => {
             console.log(conversations)
             const initial = conversations[0];
             setCurrentConversation(initial);
-            fetchUserMessages(initial.conversation_name);
+            fetchUserMessages(initial.conversation_id);
         }
     }, [conversations]);
 
@@ -103,9 +103,9 @@ const Chat = () => {
                 }
 
                 if (done) {
-                    await createMessage(currentConversation.conversation_name, userMessage, 'user', newMessages[0].id, newMessages[0].feedback);
-                    await createMessage(currentConversation.conversation_name, fullBotResponse, 'assistant', newMessages[1].id, newMessages[1].feedback);
-                    await fetchUserMessages(currentConversation.conversation_name);
+                    await createMessage(currentConversation.conversation_id, userMessage, 'user', newMessages[0].id, newMessages[0].feedback);
+                    await createMessage(currentConversation.conversation_id, fullBotResponse, 'assistant', newMessages[1].id, newMessages[1].feedback);
+                    await fetchUserMessages(currentConversation.conversation_id);
                     break;
                 }
             }
@@ -146,7 +146,7 @@ const Chat = () => {
 
     const getMessagesFromConversations = async (conversation_id: string, conversation_name: string) => {
         setCurrentConversation({ conversation_id: conversation_id, conversation_name: conversation_name });
-        await fetchUserMessages(conversation_name);
+        await fetchUserMessages(conversation_id);
     };
 
     const logoutButton = async () => {

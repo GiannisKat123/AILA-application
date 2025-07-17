@@ -21,8 +21,8 @@ async def login(data:UserCredentials, response:Response):
             key = "token",
             value=access_token,
             httponly=True,
-            secure = True, # True in production  
-            samesite = "none"
+            secure = False, # True in https
+            samesite = "lax" # none in https
         )
         return {'user_details':auth['user_details']}
     else:
@@ -67,7 +67,7 @@ async def new_conversation(data:ConversationCreationDetails):
 async def new_message(data:NewMessage):
     print(data)
     try:
-        message = create_message(conversation_name=data.conversation_name, text = data.text, role = data.role, id=data.id, feedback=data.feedback)
+        message = create_message(conversation_id=data.conversation_id, text = data.text, role = data.role, id=data.id, feedback=data.feedback)
         return message
     except HTTPException as e:
         raise HTTPException(status_code=403, detail=e.detail)  
@@ -76,22 +76,22 @@ async def new_message(data:NewMessage):
 async def get_user_conversations(token:str = Cookie(None),username:str=''):
     try:
         conversations = get_conversations(username=username)
-        print(conversations)
+        print(f"Username :{username}",f"Conversations :{conversations}")
         return conversations
     except HTTPException as e:
         raise HTTPException(status_code=403, detail=e.detail)  
     
 
 @router.get('/messages')
-async def get_messages(token:str = Cookie(None),conversation_name:str=''):
+async def get_messages(token:str = Cookie(None),conversation_id:str=''):
     print("Access token in GET MESSAGES:", token)
     if not token:
         raise HTTPException(status_code=401, detail='Missing Token')
     try:
         user = verify_token(token)
         if user:
-            print("CONVERSATION",conversation_name)
-            messages = get_user_messages(conversation_name=conversation_name)
+            print("CONVERSATION",conversation_id)
+            messages = get_user_messages(conversation_id=conversation_id)
             if len(messages) == 0:
                 return []
             return messages
