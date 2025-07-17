@@ -135,24 +135,35 @@ def get_user(token: str = Cookie(None)):
 async def chat_endpoint(request: Message):
     print(request)
 
-    #### For LLM open source models via Ollama
+    ### For LLM open source models via Ollama
     # async def generate():
     #     async for chunk in llm.astream(request.message):
     #         content = chunk.content if hasattr(chunk, 'content') else str(chunk)
     #         print(f"data: {json.dumps({'response': content, 'status': 200})}\n\n")
     #         yield f"data: {json.dumps({'response': content, 'status': 200})}\n\n"
-            
+
     async def generate():
-        response = llm.query(request.message)
-        if hasattr(response, "response_gen"):
-            for chunk in response.response_gen:
-                content = str(chunk)
+        try:
+            response = llm.query(request.message)
+
+            # Check if the response has a stream generator
+            if hasattr(response, "response_gen"):
+                for chunk in response.response_gen:
+                    content = str(chunk)
+                    print(f"data: {json.dumps({'response': content, 'status': 200})}\n\n")
+                    yield f"data: {json.dumps({'response': content, 'status': 200})}\n\n"
+            else:
+                # Fallback if streaming is not supported
+                content = str(response)
                 print(f"data: {json.dumps({'response': content, 'status': 200})}\n\n")
                 yield f"data: {json.dumps({'response': content, 'status': 200})}\n\n"
-        else:
-            # fallback if streaming not supported
-            print(f"data: {json.dumps({'response': str(response), 'status': 200})}\n\n")
-            yield f"data: {json.dumps({'response': str(response), 'status': 200})}\n\n"
+
+        except Exception as e:
+            # Log error details
+            print(f"Error occurred in chat_endpoint: {e}\n{e.__traceback__}")
+            
+            # OR raise it, if you don't want partial yield
+            raise HTTPException(status_code=500, detail="Internal Server Error during LLM generation.")
 
     return StreamingResponse(generate(), media_type="text/event-stream")
 

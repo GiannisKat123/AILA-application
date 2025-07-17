@@ -32,7 +32,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const RegisterUser = async (username: string, password: string, email: string): Promise<boolean | ErrorMessage> => {
         try {
             const res = await registerAPI(username, password, email);
-            console.log(res);
             if (res && res === true) {
                 setUser({ username: username, email: email, verified: false })
                 return true;
@@ -55,7 +54,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const verifyCodeUser = async (username: string, code: string): Promise<boolean|ErrorMessage> => {
         try {
             const res = await verifyAPI(username, code);
-            console.log("RESULT",res);
             if (res === true) {
                 return true;
             }   
@@ -63,7 +61,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 return {error_message:res.error_message}
             }
             else{
-                console.log("WHAT",res);
                 return {error_message:'Something went wrong in verification'}
             }
         }
@@ -113,9 +110,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const loginUser = async (username: string, password: string): Promise<LoginAPIOutput | ErrorMessage> => {
         try {
             const res = await loginAPI(username, password);
-            console.log(res)
             if (res && typeof res === 'object' && "user_details" in res) {
-                console.log(res.user_details)
                 setUser({ username: res.user_details.username, email: res.user_details.email, verified: res.user_details.verified })
                 return res;
             }
@@ -151,7 +146,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     const fetchConversations = async (username: string) => {
-        console.log("Username to get conversations:",username);
         try {
             const res = await getConversationsAPI(username);
             if (res) {
@@ -183,7 +177,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         try {
             const messages = await getUserMessagesAPI(conversation_id);
             if (messages) {
-                console.log(messages)
                 setMessages(messages);
             }
             else {
@@ -206,7 +199,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             else {
                 setUser(null);
                 setMessages(null);
-                console.log("Something went completely wrong");
             }
 
         }
@@ -221,13 +213,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const initialize = async () => {
             try {
                 const res = await verifyUser();
-                console.log("User Verified", res);
                 if (res) {
                     setUser(res);
                 }
             }
             catch {
-                console.log("Something happened");
                 setUser(null);
             }
             finally {

@@ -33,7 +33,6 @@ const Chat = () => {
 
     useEffect(() => {
         if (conversations?.length) {
-            console.log(conversations)
             const initial = conversations[0];
             setCurrentConversation(initial);
             fetchUserMessages(initial.conversation_id);
@@ -117,7 +116,6 @@ const Chat = () => {
 
     const handleUserFeedback = async (message_index: string, conversation_id: string, feedback: boolean, e?: React.MouseEvent) => {
         e?.preventDefault();
-        console.log(message_index, conversation_id, feedback);
         try {
             await userFeedback(message_index, conversation_id, feedback);
             setMessages((prev) =>
@@ -127,7 +125,6 @@ const Chat = () => {
             );
         } catch (err) {
             console.log("Something went wrong with the feedback");
-
         }
     }
 

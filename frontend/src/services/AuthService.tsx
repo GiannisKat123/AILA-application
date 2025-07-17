@@ -8,9 +8,7 @@ const loginAPI = async (username: string, password: string): Promise<LoginAPIOut
         return response.data;
     }
     catch (err) {
-        console.log("Error", err);
         if (axios.isAxiosError(err)) {
-            console.log(err.response?.data.detail);
             return { error_message: err.response?.data.detail };
         }
         else {
@@ -27,7 +25,6 @@ const registerAPI = async (username: string, password: string, email: string): P
     }
     catch (err) {
         if (axios.isAxiosError(err)) {
-            console.log(err.response?.data.detail);
             return { error_message: err.response?.data.detail };
         }
         else {
@@ -44,7 +41,6 @@ const verifyAPI = async (username: string, code: string): Promise<boolean | Erro
     }
     catch (err) {
         if (axios.isAxiosError(err)) {
-            console.log(err.response?.data.detail);
             return { error_message: err.response?.data.detail };
         }
         else {
@@ -97,7 +93,6 @@ const createConversationAPI = async (conversation_name: string, username: string
 }
 
 const createMessageAPI = async (conversation_id: string, text: string, role: string, id: string, feedback: boolean | null): Promise<Message | undefined> => {
-    console.log({ conversation_id: conversation_id, text: text, role: role, id: id, feedback: feedback })
     try {
         const response = await api.post('/new_message', { conversation_id: conversation_id, text: text, role: role, id: id, feedback: feedback }, { withCredentials: true });
         return response.data
@@ -133,7 +128,6 @@ const getUserMessagesAPI = async (conversation_id: string): Promise<Message[] | 
         params: { conversation_id },
         withCredentials: true
     });
-    console.log("Response: ", response.data)
     return response.data;
 }
 
