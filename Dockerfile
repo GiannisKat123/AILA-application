@@ -27,6 +27,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend/ ./backend/
 
+RUN python ./backend/cache_models.py
+
 # ------------------------------------------------------
 COPY --from=frontend-builder /app/dist ./frontend/dist
 
