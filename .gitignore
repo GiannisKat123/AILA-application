@@ -1,3 +1,6 @@
 fly.toml
 .env
+nginx
+fly.toml
+test.py
 
