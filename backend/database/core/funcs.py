@@ -19,7 +19,6 @@ def login_user(session:Session,username:str,password:str) -> UserAuthentication:
     user_dao = UserDao()
     enc = EncryptionDec()
     users_fetched = user_dao.fetchUser(session,username)
-    print(username,password,users_fetched)
     if len(users_fetched) == 0:
         return {
             'authenticated':False,
@@ -46,12 +45,9 @@ def check_create_user_instance(session:Session, username:str, password:str, emai
     enc = EncryptionDec()
     user_in_database = user_dao.fetchUser(session=session,username=username)
     user_email_in_database = user_dao.fetchUserByEmail(session=session,email=email)
-    print(username,password,email)
     if len(user_in_database) > 0:
-        print({'res':False,'detail':'User already exists'})
         return {'res':False,'detail':'User already exists'}
     elif len(user_email_in_database) > 0:
-        print({'res':False,'detail':'Email already exists'})
         return {'res':False,'detail':'Email already exists'}
     elif enc.is_valid_password(password):
         code = enc.generate_verification_code()
@@ -65,7 +61,6 @@ def check_create_user_instance(session:Session, username:str, password:str, emai
             date_created_on=datetime.now(timezone.utc).isoformat()
         )
         res = user_dao.createUser(session=session,user_data=user)
-        print(res)
         if res: 
             send_verification_code(email=email,code = code)
             return {'res':True, 'detail':code}
@@ -97,9 +92,7 @@ def send_verification_code(email:str,code:str):
 @transactional
 def check_verification_code(session:Session,username:str,user_code:str):
     user_dao = UserDao()
-    print(username,user_code)
     user = user_dao.fetchUser(session=session,username=username)[0]
-    print(user.code_created_on,datetime.now(timezone.utc))
     if datetime.now(timezone.utc) > user.code_created_on + timedelta(minutes=2):
         return {'res':False,'detail':'Verification code expired'}
     elif user_code != user.verification_code:
@@ -113,7 +106,6 @@ def resend_ver_code(session:Session,username:str,email:str):
     user_dao = UserDao()
     enc = EncryptionDec()
     code = enc.generate_verification_code()
-    print(username,email)
     try:
         user_dao.updateVerCode(session=session,username=username,code=code,code_created_on=datetime.now(timezone.utc).isoformat())
         send_verification_code(email=email,code = code)
@@ -143,20 +135,25 @@ def create_conversation(session:Session,username:str,conversation_name:str) -> N
     return {'conversation_name':conversation_name,'conversation_id':conversation_id}
 
 @transactional
-def create_message(session:Session,conversation_name:str,text:str,role:str, id:str, feedback:bool=None) -> None:
+def update_conv(session:Session,conversation_id:str,conversation_name:str):
+    conversation_dao = ConversationDao()
+    conversation_dao.updateConversationByName(session,conversation_id,conversation_name)
+    return
+
+@transactional
+def create_message(session:Session,conversation_id:str,text:str,role:str, id:str, feedback:bool=None) -> None:
     conversation_dao = ConversationDao()
     user_messages_dao = UserMessagesDao()
-    conversation = conversation_dao.fetchConversationByConverastionName(session,conversation_name)[0]
     timestamp = datetime.now(timezone.utc)
     new_message = UserMessage(
         message_id=id,
-        conversation_id= conversation.id,
+        conversation_id= conversation_id,
         message=text,
         role = role,
         feedback=feedback,
         date_created_on=timestamp.isoformat()
     )
-    conversation_dao.updateConversationByDate(session,conversation_name=conversation_name,timestamp=timestamp.isoformat())
+    conversation_dao.updateConversationByDate(session,conversation_id=conversation_id,timestamp=timestamp.isoformat())
     message = user_messages_dao.createMessage(session,new_message)
     return {'id':message.id,'message':message.message_text,'timestamp':message.date_created_on,'role':message.role}
 
@@ -173,19 +170,14 @@ def get_token(session:Session,username:str) -> str:
     return user.session_id if user.session_id else None
 
 @transactional
-def get_user_messages(session:Session,conversation_name:str) -> list:
+def get_user_messages(session:Session,conversation_id:str) -> list:
     user_messages_dao = UserMessagesDao()
-    conversation_dao = ConversationDao()
-    conversation = conversation_dao.fetchConversationByConverastionName(session,conversation_name)
-    if len(conversation) > 0:
-        user_messages = user_messages_dao.fetchMessagesByConversationId(session,conversation_id=conversation[0].id)
-        if user_messages:
-            messages = []
-            for mes in user_messages:
-                messages.append({'id':mes.id,'message':mes.message_text,'timestamp':str(mes.date_created_on),'role':mes.role, 'feedback':mes.feedback})
-            print("GEt User Messages",messages)
-            return messages
-        else: return []
+    user_messages = user_messages_dao.fetchMessagesByConversationId(session,conversation_id=conversation_id)
+    if user_messages:
+        messages = []
+        for mes in user_messages:
+            messages.append({'id':mes.id,'message':mes.message_text,'timestamp':str(mes.date_created_on),'role':mes.role, 'feedback':mes.feedback})
+        return messages
     else: return []
 
 @transactional

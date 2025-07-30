@@ -49,7 +49,6 @@ class UserDao:
 
     def updateVerCode(self,session:Session,username:str,code:str,code_created_on):
         try:
-            print("username:",username,code,code_created_on)
             user = session.query(User).filter(User.user_name == username.strip()).one()
             user.verification_code = code
             user.code_created_on = code_created_on

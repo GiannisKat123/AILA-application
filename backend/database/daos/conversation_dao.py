@@ -35,11 +35,20 @@ class ConversationDao:
             print(f"Error in ConversationDao.fetchMessages. Error Massage: {e}")
             raise e
         
-    def updateConversationByDate(self,session:Session,conversation_name:str,timestamp:str):
+    def updateConversationByDate(self,session:Session,conversation_id:str,timestamp:str):
         try:
-            conversation = session.query(Conversation).filter(Conversation.conversation_name == conversation_name).one()
+            conversation = session.query(Conversation).filter(Conversation.id == conversation_id).one()
             conversation.last_updated = timestamp
             session.commit()
         except Exception as e:
             print(f"Error in ConversationDao.updateConversationByDate. Error Massage: {e}")
+            raise e
+        
+    def updateConversationByName(self,session:Session,conversation_id:str,conversation_name:str):
+        try:
+            conversation = session.query(Conversation).filter(Conversation.id == conversation_id).one()
+            conversation.conversation_name = conversation_name
+            session.commit()
+        except Exception as e:
+            print(f"Error in ConversationDao.updateConversationByName. Error Massage: {e}")
             raise e

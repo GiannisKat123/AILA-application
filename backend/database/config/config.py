@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     VITE_API_URL: str 
     APP_PASSWORD: str
     SENDER_EMAIL: str
+    COHERE_API_KEY: str
+    COHERE_MODEL_ID:str
+    INIT_MODE: str
+    OPEN_AI_MODEL:str
+    TAVILY_API_KEY: str
     class Config:
         env_file = ".env"
 
