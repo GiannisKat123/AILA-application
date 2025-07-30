@@ -289,14 +289,20 @@ def parse_cybercrime(file_directory:str,chunker:BaseChunker):
     return chunks
 
 
-def load_vector_index(top_k:int,persist_dir:str, embedding, bm25_retriever):
-    dense_index = FAISS.load_local(folder_path=persist_dir, embeddings=embedding,allow_dangerous_deserialization=True)
-    dense_retriever = dense_index.as_retriever(search_type="similarity", search_kwargs={"k": top_k})
-    return EnsembleRetriever(
-        retrievers = [dense_retriever,bm25_retriever],
-        weights=[0.7,0.3],
-        unique_docs_by="page_content"
-    )
+# def load_vector_index(top_k:int,persist_dir:str, embedding, bm25_retriever):
+#     dense_index = FAISS.load_local(folder_path=persist_dir, embeddings=embedding,allow_dangerous_deserialization=True)
+#     dense_retriever = dense_index.as_retriever(search_type="similarity", search_kwargs={"k": top_k})
+#     return EnsembleRetriever(
+#         retrievers = [dense_retriever,bm25_retriever],
+#         weights=[0.7,0.3],
+#         unique_docs_by="page_content"
+#     )
+
+def load_vector_index(top_k:int,persist_dir:str, embedding):
+    storage_context = StorageContext.from_defaults(persist_dir=persist_dir)
+    index = load_index_from_storage(storage_context=storage_context,embed_model=embedding)
+    return index.as_retriever(similarity_top_k=top_k,search_type='hybrid')
+
 
 def load_reranker_model():
     co = cohere.ClientV2(settings.COHERE_API_KEY)
@@ -304,199 +310,55 @@ def load_reranker_model():
     return co,ft
 
 def initialize_indexes(top_k:int):
-    os.environ['OPENAI_API_KEY'] = settings.API_KEY
-
-    input_paths = {
-        "phishing": "./backend/files/en/Phishing Scenarios",
-        "gdpr": "./backend/files/en/General Data Protection Regulation",
-        "cybercrime": "./backend/files/en/Greek Cybercrime Legislation",
-        "cases": "./backend/files/en/Law Cases",
-    }
-
-    encoding = tiktoken.get_encoding("cl100k_base")
-
-    phishing_chunks = parse_phishing(input_paths['phishing'],SentenceChunker(sentences_per_chunk=1,encoding=encoding))
-
-    law_cases_chunks_recall = parse_law_cases(input_paths['cases'],TokenChunker(tokens_per_chunk=1000,overlap=100))
-    law_cases_chunks_precision = parse_law_cases(input_paths['cases'],RecursiveCharacterChunker(characters_per_chunk=100,overlap=0))
-
-    gpc_chunks_recall = parse_cybercrime(input_paths['cybercrime'],SentenceChunker(sentences_per_chunk=20,encoding=encoding))
-    gpc_chunks_precision = parse_cybercrime(input_paths['cybercrime'],ResTokenChunker(tokens_per_chunk=200,overlap=20))
-
-
-    gdpr_chunks_recall = parse_gdpr(input_paths['gdpr'],SentenceChunker(sentences_per_chunk=20,encoding=encoding))
-    gdpr_chunks_precision = parse_gdpr(input_paths['gdpr'],ResTokenChunker(tokens_per_chunk=200,overlap=20))
-
-    phishing_documents = []
-
-    for chunk in phishing_chunks:
-        metadata = {
-            'id':chunk['id']
-        }
-        for key in chunk['metadata'].keys():
-            metadata[key] = chunk['metadata'][key]
-
-        text = chunk['content']
-        phishing_documents.append(langchainDocument(page_content=text,metadata=metadata))
-
-
-    phishing_bm25_retriever = BM25Retriever.from_documents(phishing_documents)
-    phishing_bm25_retriever.k = 5
 
     # 🔐 Phishing
     phishing_retriever = load_vector_index(
         10,
-        "./backend/faiss_vectors/phishing_index_documents_trained_embedding",
+        "./backend/vector_indexes/phishing_index_documents_trained_embedding",
         HuggingFaceEmbeddings(model_name='./backend/cached_embedding_models/IoannisKat1__multilingual-e5-large-legal-matryoshka'),
-        phishing_bm25_retriever
     )
-
-    law_cases_recall_documents = []
-
-    for chunk in law_cases_chunks_recall:
-        metadata = {
-            'id':chunk['id']
-        }
-        for key in chunk['metadata'].keys():
-            metadata[key] = chunk['metadata'][key]
-
-        text = chunk['content'] 
-        law_cases_recall_documents.append(langchainDocument(page_content=text,metadata=metadata))
-
-    law_cases_recall_bm25_retriever = BM25Retriever.from_documents(law_cases_recall_documents)
-    law_cases_recall_bm25_retriever.k = 5
-
-    law_cases_precision_documents = []
-
-    for chunk in law_cases_chunks_precision:
-        metadata = {
-            'id':chunk['id']
-        }
-        for key in chunk['metadata'].keys():
-            metadata[key] = chunk['metadata'][key]
-
-        text = chunk['content']
-        if len(text) > 5:
-            law_cases_precision_documents.append(langchainDocument(page_content=text,metadata=metadata))
-
-    law_cases_precision_bm25_retriever = BM25Retriever.from_documents(law_cases_precision_documents)
-    law_cases_precision_bm25_retriever.k = 5
-
 
     # ⚖️ Law Cases – Recall
     law_cases_index_recall_retriever = load_vector_index(
         10,
-        "./backend/faiss_vectors/law_cases_recall_index_documents_recall_trained_embedding",
+        "./backend/vector_indexes/law_cases_recall_index_documents_recall_trained_embedding",
         HuggingFaceEmbeddings(model_name='./backend/cached_embedding_models/IoannisKat1__modernbert-embed-base-legal-matryoshka-2'),
-        law_cases_recall_bm25_retriever
     )
 
     # ⚖️ Law Cases – Precision
     law_cases_index_precision_retriever = load_vector_index(
         10,
-        "./backend/faiss_vectors/law_cases_recall_index_documents_precision_trained_embedding",
+        "./backend/vector_indexes/law_cases_recall_index_documents_precision_trained_embedding",
         HuggingFaceEmbeddings(model_name='./backend/cached_embedding_models/IoannisKat1__bge-m3-legal-matryoshka'),
-        law_cases_precision_bm25_retriever
     )
-
-    # ### Greek Penal Code
-    gpc_recall_documents = []
-
-    for chunk in gpc_chunks_recall:
-        metadata = {
-            'id':chunk['id']
-        }
-        for key in chunk['metadata'].keys():
-            metadata[key] = chunk['metadata'][key]
-
-        text = chunk['content']
-        if len(text) > 5:
-            gpc_recall_documents.append(langchainDocument(page_content=text,metadata=metadata))
-
-    gcp_recall_bm25_retriever = BM25Retriever.from_documents(gpc_recall_documents)
-    gcp_recall_bm25_retriever.k = 5
-
-    gpc_precision_documents = []
-
-    for chunk in gpc_chunks_precision:
-        metadata = {
-            'id':chunk['id']
-        }
-        for key in chunk['metadata'].keys():
-            metadata[key] = chunk['metadata'][key]
-
-        text = chunk['content']
-        if len(text) > 5:
-            gpc_precision_documents.append(langchainDocument(page_content=text,metadata=metadata))
-
-    gcp_precision_bm25_retriever = BM25Retriever.from_documents(gpc_precision_documents)
-    gcp_precision_bm25_retriever.k = 5
-
 
     # 🇬🇷 Greek Penal Code – Recall
     gpc_index_recall_retriever = load_vector_index(
         10,
-        "./backend/faiss_vectors/gpc_recall_index_documents_recall_trained_embedding",
+        "./backend/vector_indexes/gpc_recall_index_documents_recall_trained_embedding",
         HuggingFaceEmbeddings(model_name='./backend/cached_embedding_models/IoannisKat1__legal-bert-base-uncased-legal-matryoshka'),
-        gcp_recall_bm25_retriever
     )
 
     # 🇬🇷 Greek Penal Code – Precision
     gpc_index_precision_retriever = load_vector_index(
         10,
-        "./backend/faiss_vectors/gpc_recall_index_documents_precision_trained_embedding",
+        "./backend/vector_indexes/gpc_recall_index_documents_precision_trained_embedding",
         HuggingFaceEmbeddings(model_name='./backend/cached_embedding_models/IoannisKat1__modernbert-embed-base-legal-matryoshka-2'),
-        gcp_precision_bm25_retriever
     )
-
-        # ### GDPR
-    gdpr_recall_documents = []
-
-    for chunk in gdpr_chunks_recall:
-        metadata = {
-            'id':chunk['id']
-        }
-        for key in chunk['metadata'].keys():
-            metadata[key] = chunk['metadata'][key]
-
-        text = chunk['content']
-        if len(text) > 5:
-            gdpr_recall_documents.append(langchainDocument(page_content=text,metadata=metadata))
-
-    gdpr_recall_bm25_retriever = BM25Retriever.from_documents(gdpr_recall_documents)
-    gdpr_recall_bm25_retriever.k = 5
-
-    gdpr_precision_documents = []
-
-    for chunk in gdpr_chunks_precision:
-        metadata = {
-            'id':chunk['id']
-        }
-        for key in chunk['metadata'].keys():
-            metadata[key] = chunk['metadata'][key]
-
-        text = chunk['content']
-        if len(text) > 5:
-            gdpr_precision_documents.append(langchainDocument(page_content=text,metadata=metadata))
-
-    gdpr_precision_bm25_retriever = BM25Retriever.from_documents(gdpr_precision_documents)
-    gdpr_precision_bm25_retriever.k = 5
 
 
     # 🛡️ GDPR – Recall
     gdpr_index_recall_retriever = load_vector_index(
         10,
-        "./backend/faiss_vectors/gdpr_recall_index_documents_recall_trained_embedding",
+        "./backend/vector_indexes/gdpr_recall_index_documents_recall_trained_embedding",
         HuggingFaceEmbeddings(model_name='./backend/cached_embedding_models/IoannisKat1__modernbert-embed-base-legal-matryoshka-2'),
-        gdpr_recall_bm25_retriever
     )
 
     # 🛡️ GDPR – Precision
     gdpr_index_precision_retriever = load_vector_index(
         10,
-        "./backend/faiss_vectors/gdpr_precision_index_documents_precision_trained_embedding",
+        "./backend/vector_indexes/gdpr_precision_index_documents_precision_trained_embedding",
         HuggingFaceEmbeddings(model_name='./backend/cached_embedding_models/IoannisKat1__multilingual-e5-large-legal-matryoshka'),
-        gdpr_precision_bm25_retriever
     )
     
     return {
@@ -530,8 +392,11 @@ class LLM_Pipeline():
         retrieved_nodes = []
         for index in indexes:
             index = index_mapping[index]
-            nodes = index.get_relevant_documents(query)
-            retrieved_nodes.append(nodes)
+            nodes = index.retrieve(query)
+            retrieved_nodes.append([langchainDocument(page_content=node.text,metadata=node.metadata) for node in nodes])
+
+            # nodes = index.get_relevant_documents(query)
+            # retrieved_nodes.append(nodes)
 
         if isinstance(reranker_model,CrossEncoder):
             documents = []
@@ -677,12 +542,12 @@ class LLM_Pipeline():
                 state['questions'] = questions
                 return {'questions':questions}
             
-            except OpenAIError as e1:
-                raise 'Exceeded current quota, please contact with administration'    
-        
-            except Exception as e:
-                continue
+            except OpenAIError:
+                raise RuntimeError("Exceeded current quota, please contact the administrator.")  # ✅ Fixed
             
+            except Exception as e:
+                continue  
+        
         raise RuntimeError("❌ Failed to rewrite query after multiple attempts.")
 
     def run_classifications_parallel(self,state):
@@ -802,7 +667,6 @@ class LLM_Pipeline():
 
 
         state['retrieved_docs'] = results
-        print(results.keys())
         return {'retrieved_docs': state['retrieved_docs']}
 
 
