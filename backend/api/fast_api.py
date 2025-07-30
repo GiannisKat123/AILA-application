@@ -1,28 +1,27 @@
-from fastapi import APIRouter, Response, HTTPException, Cookie
+from fastapi import APIRouter, Response, HTTPException, Cookie, Request
 import json
-from backend.api.models import UserFeedback,UserOpenData,VerifCode,UserCredentials, ConversationCreationDetails, UserData ,NewMessage, Message
-from backend.database.core.funcs import set_feedback,resend_ver_code,check_verification_code, check_create_user_instance ,login_user, update_token, get_user_messages, get_conversations, create_conversation, create_message
-from backend.api.utils import create_access_token, verify_token, initialize_model
+from backend.api.models import UserFeedback,UserOpenData,VerifCode,UserCredentials, ConversationCreationDetails, UserData ,NewMessage, Message, UpdateConversationDetails
+from backend.database.core.funcs import update_conv,set_feedback,resend_ver_code,check_verification_code, check_create_user_instance ,login_user, update_token, get_user_messages, get_conversations, create_conversation, create_message
+from backend.api.utils import create_access_token, verify_token
 from fastapi.responses import StreamingResponse
-from backend.crypt.encrypt_decrypt import EncryptionDec
+from langchain.prompts import PromptTemplate 
+from langchain_openai import ChatOpenAI
+from backend.database.config.config import settings
 
 router = APIRouter()
-llm = initialize_model()
 
 @router.post('/login')
 async def login(data:UserCredentials, response:Response):
     auth = login_user(username=data.username, password=data.password)
     if auth['authenticated']:
-        print(auth)
         access_token = create_access_token({'sub':f"{auth['user_details']['username']}+?{auth['user_details']['email']}+?{auth['user_details']['verified']}"})
-        print("ACCESS TOKEN: ",access_token)
         update_token(username=auth['user_details']['username'], token=access_token)
         response.set_cookie(
             key = "token",
             value=access_token,
             httponly=True,
-            secure = False, # True in https
-            samesite = "lax" # none in https
+            secure = True, # True in production  
+            samesite = "none"
         )
         return {'user_details':auth['user_details']}
     else:
@@ -63,9 +62,16 @@ async def new_conversation(data:ConversationCreationDetails):
     except Exception as e:
         raise HTTPException(status_code=403, detail=e.detail)
     
+@router.post('/update_conversation')
+async def update_conversation(data:UpdateConversationDetails):
+    try:
+        update_conv(conversation_name=data.conversation_name,conversation_id=data.conversation_id)
+        return True
+    except Exception as e:
+        raise HTTPException(status_code=403, detail=e.detail)
+
 @router.post('/new_message')
 async def new_message(data:NewMessage):
-    print(data)
     try:
         message = create_message(conversation_id=data.conversation_id, text = data.text, role = data.role, id=data.id, feedback=data.feedback)
         return message
@@ -76,7 +82,6 @@ async def new_message(data:NewMessage):
 async def get_user_conversations(token:str = Cookie(None),username:str=''):
     try:
         conversations = get_conversations(username=username)
-        print(f"Username :{username}",f"Conversations :{conversations}")
         return conversations
     except HTTPException as e:
         raise HTTPException(status_code=403, detail=e.detail)  
@@ -84,13 +89,11 @@ async def get_user_conversations(token:str = Cookie(None),username:str=''):
 
 @router.get('/messages')
 async def get_messages(token:str = Cookie(None),conversation_id:str=''):
-    print("Access token in GET MESSAGES:", token)
     if not token:
         raise HTTPException(status_code=401, detail='Missing Token')
     try:
         user = verify_token(token)
         if user:
-            print("CONVERSATION",conversation_id)
             messages = get_user_messages(conversation_id=conversation_id)
             if len(messages) == 0:
                 return []
@@ -109,7 +112,6 @@ def user_feedback(data:UserFeedback):
 
 @router.get('/get_user')
 def get_user(token: str = Cookie(None)):
-    print("Access token:", token)
     if not token:
         raise HTTPException(status_code=401, detail='Missing Token')
     try:
@@ -118,7 +120,6 @@ def get_user(token: str = Cookie(None)):
             username = user.split('+?')[0]
             email = user.split('+?')[1]
             verified = user.split('+?')[2]
-            print("Verified:",verified)
             if 'true' in str(verified).lower():
                 verified = True
             elif 'false' in str(verified).lower():
@@ -132,41 +133,63 @@ def get_user(token: str = Cookie(None)):
         raise HTTPException(status_code=403, detail=e.detail)        
 
 @router.post('/request')
-async def chat_endpoint(request: Message):
-    print(request)
+async def chat_endpoint(request_data: Message,request:Request):
 
-    ### For LLM open source models via Ollama
-    # async def generate():
-    #     async for chunk in llm.astream(request.message):
-    #         content = chunk.content if hasattr(chunk, 'content') else str(chunk)
-    #         print(f"data: {json.dumps({'response': content, 'status': 200})}\n\n")
-    #         yield f"data: {json.dumps({'response': content, 'status': 200})}\n\n"
+    prompt = """
+        You are a highly competent legal assistant designed to provide accurate, well-reasoned, and context-aware answers to legal questions. Your responses should be clear, concise, and grounded in the provided legal context and conversation history.
+
+        Your task is to analyze the question posed by the user and generate a helpful answer based on the information available. If necessary, synthesize knowledge from both legal documents and prior conversation to ensure completeness and legal soundness.
+
+        You have access to the following sources of information:
+
+        1. **Conversation History**: This includes prior interactions with the user, which may contain clarification, additional details, or follow-up questions. Use this to maintain coherence and continuity.
+            {conversation_history}
+
+        2. **Legal Context**: This includes relevant legal texts, regulations, court decisions, or authoritative commentary provided as context. Use this as your primary source of legal truth.
+            
+            RAG CONTEXT: {summarized_context}
+
+            SEARCH RESULTS: {search_results}
+
+        3. **User's Current Question**: This is the specific legal inquiry that you must address:
+            {query}
+
+        Instructions:
+        - Prioritize factual correctness and legal validity.
+        - If the context contains conflicting information, acknowledge the ambiguity and respond cautiously.
+        - Do not fabricate laws, articles, or cases.
+        - If the question cannot be answered based on the context, state that clearly and suggest next steps if possible.
+        - Structure your answer logically, and cite the context or conversation elements when appropriate.
+        - Keep the most relevant information that can help you answer the user query. Keep also related metadata in your response.
+
+        If you have metadata related to the context, include it in your response as well.
+
+        Generate your answer below in {language}:
+    """
+
+    prompt = PromptTemplate(input_variables=['query','summarized_context','conversation_history','search_results','language'],template=prompt)
+    model = ChatOpenAI(model=settings.OPEN_AI_MODEL,api_key=settings.API_KEY,temperature=0.7,streaming=True)
+    agent_chain = prompt | model
+
+    pipeline = request.app.state.pipeline
+    app = request.app.state.app
+    
+    llm_params = pipeline.get_context_from_graph(app,request_data.message)
+
+    llm_params['conversation_history'] = request_data.conversation_history if len(request_data.conversation_history)!=0 else []
 
     async def generate():
         try:
-            response = llm.query(request.message)
-
-            # Check if the response has a stream generator
-            if hasattr(response, "response_gen"):
-                for chunk in response.response_gen:
-                    content = str(chunk)
-                    print(f"data: {json.dumps({'response': content, 'status': 200})}\n\n")
-                    yield f"data: {json.dumps({'response': content, 'status': 200})}\n\n"
-            else:
-                # Fallback if streaming is not supported
-                content = str(response)
-                print(f"data: {json.dumps({'response': content, 'status': 200})}\n\n")
+            async for chunk in agent_chain.astream(llm_params):
+                content = chunk.content if hasattr(chunk, 'content') else str(chunk)
                 yield f"data: {json.dumps({'response': content, 'status': 200})}\n\n"
 
         except Exception as e:
-            # Log error details
-            print(f"Error occurred in chat_endpoint: {e}\n{e.__traceback__}")
-            
+            # Log error details            
             # OR raise it, if you don't want partial yield
             raise HTTPException(status_code=500, detail="Internal Server Error during LLM generation.")
-
+        
     return StreamingResponse(generate(), media_type="text/event-stream")
-
 
 @router.post('/logout')
 async def logout(response:Response):

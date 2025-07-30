@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import List
 
 class UserCredentials(BaseModel):
     username:str
@@ -8,10 +9,14 @@ class ConversationCreationDetails(BaseModel):
     username:str
     conversation_name:str
 
+class UpdateConversationDetails(BaseModel):
+    conversation_name:str
+    conversation_id:str
+
 class NewMessage(BaseModel):
     feedback: bool | None
     id:str
-    conversation_name:str
+    conversation_id:str
     text:str
     role:str
 
@@ -21,6 +26,7 @@ class UserOpenData(BaseModel):
 
 class Message(BaseModel):
     message:str
+    conversation_history:List[dict]
 
 class UserAuthentication(BaseModel):
     authenticated:bool

@@ -1,13 +1,48 @@
+# -----------------------------
+# Core Framework
+# -----------------------------
 fastapi
+uvicorn
 python-dotenv
 pydantic
 bcrypt
 SQLAlchemy
 python-jose
-llama-index
-langchain
-openai
-langchain-community
-langchain-ollama
-uvicorn
 psycopg2-binary
+langdetect
+typing-extensions
+pydantic-settings
+scipy
+gunicorn
+
+#### For new architecture
+
+langchain
+langchain-core
+langchain-openai
+langchain-community
+langchain-tavily
+langchain-huggingface
+openai
+rank_bm25
+faiss-cpu
+
+# LlamaIndex + OpenAI embedding support
+llama-index-core
+llama-index-embeddings-openai
+llama-index-embeddings-langchain
+sentence-transformers 
+torch 
+transformers
+protobuf
+# Cohere client + fine-tuning model schema
+cohere
+
+# Embeddings
+numpy
+
+# Utilities
+langdetect
+langgraph
+langchain-tavily
+git+https://github.com/brandonstarxel/chunking_evaluation.git

@@ -1,12 +1,6 @@
-from dotenv import load_dotenv
 from datetime import datetime
 from jose import jwt, JWTError
-from langchain_ollama.chat_models import ChatOllama
-from llama_index.core.storage.storage_context import StorageContext
-from llama_index.core.indices.loading import load_index_from_storage
-from llama_index.llms.openai import OpenAI
 from backend.database.config.config import settings
-import os
 
 def create_access_token(data:dict):
     """
@@ -27,21 +21,21 @@ def verify_token(token:str):
         print(e)
         return None
     
-def initialize_model():
-    #### For LLM open source models via Ollama
-    # llm_model = ChatOllama(
-    #     model = "deepseek-r1:1.5b",
-    #     base_url = os.getenv("OLLAMA_SERVER_URL"),
-    #     temperature = 0.7,
-    #     top_p = 1.0,
-    #     repeat_penalty = 1.0,
-    # )
-    # return llm_model
-    os.environ['OPENAI_API_KEY'] = settings.API_KEY
-    llm = OpenAI(streaming=True)
-    storage_context = StorageContext.from_defaults(persist_dir='backend/api/aila_indices')
-    index = load_index_from_storage(storage_context)
-    query_engine = index.as_query_engine(llm=llm,similarity_top_k=8)
-    return query_engine
+# def initialize_model():
+#     #### For LLM open source models via Ollama
+#     # llm_model = ChatOllama(
+#     #     model = "deepseek-r1:1.5b",
+#     #     base_url = os.getenv("OLLAMA_SERVER_URL"),
+#     #     temperature = 0.7,
+#     #     top_p = 1.0,
+#     #     repeat_penalty = 1.0,
+#     # )
+#     # return llm_model
+#     os.environ['OPENAI_API_KEY'] = settings.API_KEY
+#     llm = OpenAI(streaming=True)
+#     storage_context = StorageContext.from_defaults(persist_dir='backend/api/aila_indices')
+#     index = load_index_from_storage(storage_context)
+#     query_engine = index.as_query_engine(llm=llm,similarity_top_k=8)
+#     return query_engine
 
 
