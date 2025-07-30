@@ -16,10 +16,14 @@ const Chat = () => {
         conversation_name: '',
         conversation_id: ''
     });
+    const [editingConvId, setEditingConvId] = useState('');
+    const [editedTitle, setEditedTitle] = useState('');
+    // const [conversationTitle,setConversationTitle] = useState('');
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const { user, userMessages, userFeedback, logoutUser, fetchUserMessages, conversations, createConversation, createMessage, fetchConversations } = useAuth();
+    const { user, userMessages, userFeedback, logoutUser, fetchUserMessages, conversations, createConversation, createMessage, fetchConversations, renameConversation } = useAuth();
     const navigate = useNavigate();
     const chatRef = useRef<HTMLDivElement | null>(null);
+
 
     useEffect(() => {
         if (user) fetchConversations(user.username);
@@ -66,7 +70,10 @@ const Chat = () => {
                 signal: controller.signal,
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ message: userMessage })
+                body: JSON.stringify({
+                    message: userMessage,
+                    conversation_history: messages.slice(-10)
+                })
             });
 
             if (!res.ok || !res.body) {
@@ -110,7 +117,7 @@ const Chat = () => {
             }
         } catch (err) {
             console.error("Streaming failed:", err);
-            setBotResponse("Streaming failed");
+            setBotResponse("No quota to generate answer!");
         }
     };
 
@@ -128,6 +135,47 @@ const Chat = () => {
         }
     }
 
+
+    // const createNewConversation = async (name:string) => {
+    //     if (user) {
+    //         const conversation_name = name || `Conversation ${conversations?.length || 0}`;
+    //         const newConv = await createConversation(conversation_name, user?.username);
+    //         if (newConv) {
+    //             setCurrentConversation(newConv);
+    //             setMessages([]);
+    //         }
+    //         // setConversationTitle('');
+
+    //     }
+    // };
+
+    const handleRename = async (conversationId: string) => {
+        if (!editedTitle.trim()) {
+            setEditingConvId('');
+            return;
+        }
+        console.log(conversationId, editedTitle.trim());
+        await renameConversation(conversationId, editedTitle.trim());
+
+        if (conversations) {
+            for (let i = 0; i < (conversations?.length ?? 0); i++) {
+                if (conversations[i] !== null && conversations[i].conversation_id === conversationId) {
+                    conversations[i].conversation_name = editedTitle.trim();
+                    break;
+                }
+            }
+        }
+
+
+        // const conversations = conversations?.map(conv =>
+        //     conv.conversation_id === conversationId ? {...conv, conversation_name:editedTitle.trim()} : conv
+        // );
+
+        // setCurrentConversation(updated);
+
+        setEditingConvId('');
+
+    }
 
     const createNewConversation = async () => {
         if (user) {
@@ -169,6 +217,24 @@ const Chat = () => {
       ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0
     `}>
                 <div className="p-4 flex flex-col h-full">
+                    {/* <div className='mb-4'>
+                        <input
+                            type='text'
+                            value = {conversationTitle}
+                            onChange = {(e) => setConversationTitle(e.target.value)}
+                            placeholder='Name you conversation'
+                            className='w-full mb-2 p-2 border rounded text-sm'
+                        />
+                        <button
+                            onClick={() => createNewConversation(conversationTitle)}
+                            className="w-full mb-4 p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                        >
+                            + New Conversation
+                        </button>
+
+                    </div>
+                     */}
+
                     <button
                         onClick={createNewConversation}
                         className="w-full mb-4 p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
@@ -177,7 +243,45 @@ const Chat = () => {
                     </button>
 
                     <ul className="space-y-2 overflow-y-auto flex-1">
+
                         {conversations?.map((conv) => (
+                            <li key={conv.conversation_id}
+                                onClick={() => {
+                                    if (editingConvId !== conv.conversation_id) {
+                                        setSidebarOpen(false);
+                                        getMessagesFromConversations(conv.conversation_id, conv.conversation_name);
+                                    }
+                                }}
+                                onDoubleClick={() => {
+                                    setEditingConvId(conv.conversation_id);
+                                    setEditedTitle(conv.conversation_name);
+                                }}
+                                className={`p-2 cursor-pointer rounded ${conv.conversation_id === currentConversation.conversation_id
+                                    ? 'bg-blue-100 font-semibold'
+                                    : 'hover:bg-gray-200'
+                                    }`}>
+                                {editingConvId === conv.conversation_id ? (
+                                    <input
+                                        value={editedTitle}
+                                        onChange={(e) => setEditedTitle(e.target.value)}
+                                        onBlur={() => handleRename(conv.conversation_id)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') handleRename(conv.conversation_id);
+                                            if (e.key === 'Escape') setEditingConvId('');
+                                        }}
+                                        autoFocus
+                                        className="w-full p-1 border rounded text-sm"
+                                    />
+                                ) : (
+                                    conv.conversation_name
+                                )}
+                            </li>
+
+
+
+                        ))}
+
+                        {/* {conversations?.map((conv) => (
                             <li
                                 key={conv.conversation_id}
                                 onClick={() => {
@@ -191,7 +295,7 @@ const Chat = () => {
                             >
                                 {conv.conversation_name}
                             </li>
-                        ))}
+                        ))} */}
                     </ul>
 
                     <button

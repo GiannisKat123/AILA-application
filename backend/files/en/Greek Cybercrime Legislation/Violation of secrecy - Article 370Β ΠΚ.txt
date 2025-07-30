@@ -1,0 +1,4 @@
+Whoever, without authorization, copies, uses, discloses to another person, or in any way violates data of a computer or a computer program, which belong to the realm of state secrets, private secrets, business secrets, trade secrets, or privacy, shall be punished by imprisonment from three months to five years. Private computer data or programs should be considered all the data and programs that the legal holder keeps secret with justified interest, especially if the owner had taken security measures.
+If the offender is in the service of the legal holder of the data, or the secret computer data and programs have a great economic value, the act shall be punished by imprisonment from one year to five years.
+If the secret computer data and programs belong to the realm of military or diplomatic secrets, or of the security of the state, the act shall be punished according to Articles 146–147.
+The offences of paragraphs 1–2 are prosecuted only upon complaint.

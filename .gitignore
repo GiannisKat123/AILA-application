@@ -1,4 +1,2 @@
 fly.toml
-.env
-frontend/.env.production
-.dockerignore
+

@@ -4,3 +4,6 @@ frontend/npm-debug.log
 frontend/node_modules
 frontend/public
 *.log
+backend/cached_embedding_models
+backend/cached_reranker_models
+cache_models.py

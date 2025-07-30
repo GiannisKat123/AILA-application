@@ -18,6 +18,23 @@ const loginAPI = async (username: string, password: string): Promise<LoginAPIOut
     }
 }
 
+const renameConversationAPI = async (conversation_name:string, conversation_id: string): Promise<boolean | ErrorMessage> => {
+    try {
+        console.log("Renaming Conversation API called with:", conversation_name, conversation_id);
+        const response = await api.post('/update_conversation', {conversation_name:conversation_name, conversation_id: conversation_id}, { withCredentials: true });
+        return response.data;
+    }
+    catch (err) {
+        if (axios.isAxiosError(err)) {
+            return { error_message: err.response?.data.detail };
+        }
+        else {
+            console.error("Non-Axios error:", err);
+            return { error_message: String(err) };
+        }
+    }
+}
+
 const registerAPI = async (username: string, password: string, email: string): Promise<boolean | ErrorMessage> => {
     try {
         const response = await api.post('/register', { username: username, password: password, email: email }, { withCredentials: true });
@@ -165,5 +182,5 @@ const logoutAPI = async (): Promise<boolean | undefined> => {
 
 }
 
-export { loginAPI, getUserMessagesAPI, userFeedbackAPI, resendCodeAPI, verifyAPI, logoutAPI, registerAPI, requestAPI, verifyUser, createConversationAPI, createMessageAPI, getConversationsAPI };
+export { loginAPI, getUserMessagesAPI, userFeedbackAPI, resendCodeAPI, verifyAPI, renameConversationAPI , logoutAPI, registerAPI, requestAPI, verifyUser, createConversationAPI, createMessageAPI, getConversationsAPI };
 

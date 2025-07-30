@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import { loginAPI, getUserMessagesAPI, userFeedbackAPI, resendCodeAPI, verifyAPI, logoutAPI, registerAPI, verifyUser, createConversationAPI, createMessageAPI, getConversationsAPI } from '../services/AuthService';
+import { loginAPI, getUserMessagesAPI, userFeedbackAPI, renameConversationAPI, resendCodeAPI, verifyAPI, logoutAPI, registerAPI, verifyUser, createConversationAPI, createMessageAPI, getConversationsAPI } from '../services/AuthService';
 import type { LoginAPIOutput, UserProfile, Message, Conversations, ErrorMessage } from '../models/Types';
 
 
@@ -16,9 +16,10 @@ interface AuthContextType {
     logoutUser: () => Promise<void>;
     fetchConversations: (username: string) => Promise<void>;
     RegisterUser: (username: string, password: string, email: string) => Promise<boolean | ErrorMessage>;
-    verifyCodeUser: (username: string, code: string) => Promise<boolean|ErrorMessage>;
+    verifyCodeUser: (username: string, code: string) => Promise<boolean | ErrorMessage>;
     resendCode: (username: string, email: string) => Promise<void>;
     userFeedback: (message_id: string, conversation_id: string, feedback: boolean) => Promise<void>;
+    renameConversation: (conversation_name: string, conversation_id: string) => Promise<void | ErrorMessage>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -36,38 +37,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 setUser({ username: username, email: email, verified: false })
                 return true;
             }
-            else if (res && typeof res === 'object' && 'error_message' in res){
+            else if (res && typeof res === 'object' && 'error_message' in res) {
                 setUser(null);
-                return {error_message:res.error_message}
+                return { error_message: res.error_message }
             }
-            else{
+            else {
                 setUser(null);
-                return {error_message:'Something went wrong in registration'}
+                return { error_message: 'Something went wrong in registration' }
             }
         }
         catch (err) {
             setUser(null);
-            return {error_message:String(err)};
+            return { error_message: String(err) };
         }
     }
 
-    const verifyCodeUser = async (username: string, code: string): Promise<boolean|ErrorMessage> => {
+    const verifyCodeUser = async (username: string, code: string): Promise<boolean | ErrorMessage> => {
         try {
             const res = await verifyAPI(username, code);
             if (res === true) {
                 return true;
-            }   
-            else if (res && typeof res == 'object' && 'error_message' in res){
-                return {error_message:res.error_message}
             }
-            else{
-                return {error_message:'Something went wrong in verification'}
+            else if (res && typeof res == 'object' && 'error_message' in res) {
+                return { error_message: res.error_message }
+            }
+            else {
+                return { error_message: 'Something went wrong in verification' }
             }
         }
         catch (err) {
             console.error("Verification failed", err);
             setUser(null);
-            return {error_message:String(err)};
+            return { error_message: String(err) };
         }
     }
 
@@ -116,16 +117,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             }
             else if (res && typeof res === 'object' && "error_message" in res) {
                 setUser(null);
-                return {error_message : res.error_message}
+                return { error_message: res.error_message }
             }
             // Ensure a return value in all cases
             setUser(null);
-            return {error_message : "Unknown error during login"};
+            return { error_message: "Unknown error during login" };
         }
         catch (err) {
             console.error("Login failed", err);
             setUser(null);
-            return {error_message : String(err)}
+            return { error_message: String(err) }
         }
     }
 
@@ -209,6 +210,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }
 
+    const renameConversation = async (conversation_id: string, conversation_name: string): Promise<void | ErrorMessage> => {
+        try {
+            console.log("Renaming Conversation", conversation_name, conversation_id);
+            const res = await renameConversationAPI(conversation_name, conversation_id);
+
+            if (typeof res === 'object' && 'error_message' in res) {
+                return { error_message: res.error_message };
+            }
+
+            // Success: do nothing
+            return;
+        }
+        catch (err) {
+            console.error("Updating Conversation Name failed", err);
+            setUser(null);
+            return { error_message: String(err) }
+        }
+    }
+
     useEffect(() => {
         const initialize = async () => {
             try {
@@ -228,7 +248,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }, [])
 
     return (
-        <AuthContext.Provider value={{ user, userMessages, userFeedback, resendCode, verifyCodeUser, RegisterUser, loginUser, logoutUser, fetchUserMessages, loading, conversations, createConversation, createMessage, fetchConversations }}>
+        <AuthContext.Provider value={{ user, userMessages, renameConversation, userFeedback, resendCode, verifyCodeUser, RegisterUser, loginUser, logoutUser, fetchUserMessages, loading, conversations, createConversation, createMessage, fetchConversations }}>
             {children}
         </AuthContext.Provider>
     )
