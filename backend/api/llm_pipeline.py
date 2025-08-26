@@ -1,402 +1,280 @@
-import os 
+"""
+LLM Pipeline Orchestration
+
+This module defines:
+- Utilities for loading vector indexes and reranker models
+- A TypedDict AgentState for LangGraph workflows
+- LLM_Pipeline: a LangGraph-based workflow for legal question answering
+
+Key Components
+--------------
+1. load_vector_index(top_k, persist_dir, embedding)
+   -> Loads a LlamaIndex vector index with a given embedding model and returns a retriever.
+
+2. load_reranker_model()
+   -> Loads a Cohere client + finetuned reranker model.
+
+3. initialize_indexes(top_k)
+   -> Preloads all vector indexes (Phishing, Law Cases Recall/Precision,
+      Greek Penal Code Recall/Precision, GDPR Recall/Precision).
+
+4. AgentState
+   -> TypedDict describing the state used across LangGraph workflow.
+
+5. LLM_Pipeline
+   -> Orchestrates the RAG pipeline:
+        - starting_prompt: safety & relevance check
+        - query_translation: ensure English queries for retrieval
+        - query_rewriting: generate paraphrases for broader coverage
+        - run_classifications_parallel: classify into multiple categories
+        - run_retrievals_parallel: retrieve from multiple indexes
+        - get_context: summarize retrieved docs
+        - web_search: complementary retrieval from TavilySearch
+        - run_full_pipeline: executes the full flow end-to-end
+"""
+
 from backend.database.config.config import settings
-from llama_index.core import StorageContext
-from llama_index.embeddings.openai import OpenAIEmbedding
-from llama_index.core import load_index_from_storage
+from llama_index.core import StorageContext, load_index_from_storage
 from langchain_huggingface import HuggingFaceEmbeddings
 from sentence_transformers import CrossEncoder
 from llama_index.core.retrievers import VectorIndexRetriever
-from typing import Annotated, List, Dict, TypedDict, Tuple
-import cohere, ast
+from typing import Annotated, List, Dict, TypedDict
+import cohere, ast, time, operator
 from cohere.finetuning.finetuning.types.get_finetuned_model_response import GetFinetunedModelResponse
 from langdetect import detect
-from langchain.prompts import PromptTemplate 
 from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph
 from langgraph.checkpoint.memory import MemorySaver
-from langgraph.graph.state import CompiledStateGraph
 from uuid import uuid4
-import operator 
 from openai.cli._errors import OpenAIError
-from langchain.vectorstores import FAISS
 from langchain_core.documents.base import Document as langchainDocument
-from langchain_openai import OpenAIEmbeddings
-from langchain_community.retrievers import BM25Retriever
-from langchain.retrievers import EnsembleRetriever
 from langchain_tavily import TavilySearch
-import tiktoken
-import re
-from chunking_evaluation import BaseChunker
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from chunking_evaluation.chunking import (
-    FixedTokenChunker,
-    RecursiveTokenChunker,
-)
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
-def num_tokens(text,encoding):
-    return len(encoding.encode(text))
+# -------------------------
+# Index / Reranker Loading
+# -------------------------
+def load_vector_index(top_k: int, persist_dir: str, embedding):
+    """
+    Load a LlamaIndex vector index with a specified embedding model.
 
-class SentenceChunker(BaseChunker):
-    def __init__(self, sentences_per_chunk, encoding):
-        # Initialize the chunker with the number of sentences per chunk
-        self.sentences_per_chunk = sentences_per_chunk
-        self.encoding = encoding
+    Parameters
+    ----------
+    top_k : int
+        Max number of docs to retrieve.
+    persist_dir : str
+        Directory containing the persisted index.
+    embedding : HuggingFaceEmbeddings
+        Embedding model to use for retrieval.
 
-    def split_text(self,text:str) -> List[str]:
-        # Handle the case where the input text is empty
-        if not text:
-            return ""
-        
-        # Split the input text into sentences using regular expression
-        # Regex looks for white space following . ! or ? and makes a split
-        sentences = re.split(r'(?<=[.!?])\s+', text)
-
-        chunks = []
-
-        for i in range(0, len(sentences), self.sentences_per_chunk):
-            # Combine sentences into a single chunk
-            chunk = ' '.join(sentences[i:i + self.sentences_per_chunk])
-            chunks.append(chunk)
-        
-        valid_chunks = [c for c in chunks if isinstance(c, str) and c.strip()]
-        if not valid_chunks:
-            raise ValueError("No valid string chunks to embed.")
-        
-        MAX_TOKENS = 8191
-        for c in chunks:
-            if num_tokens(c,self.encoding) > MAX_TOKENS:
-                raise ValueError("Bigger than max tokens.")
-        # valid_chunks = [c for c in chunks if isinstance(c, str) and c.strip() and num_tokens(c) >= MAX_TOKENS]
-        # Return the list of chunks
-        return valid_chunks
-
-class CharacterChunker(BaseChunker):
-    def __init__(self, characters_per_chunk: int = 1000, overlap: int = 0):
-        # Initialize the chunker with the number of characters per chunk
-        self.characters_per_chunk = characters_per_chunk
-        self.overlap = overlap
-
-    def split_text(self, text: str) -> List[str]:
-        # Handle the case where the input text is empty
-        if not text:
-            indexes += []
-
-        # Initialize an empty list to hold the chunks
-        chunks = []
-        start = 0
-
-        # Loop to create chunks of specified character length
-        while start < len(text):
-            end = start + self.characters_per_chunk
-            
-            # If the end exceeds the text length, adjust it
-            if end > len(text):
-                end = len(text)
-
-            # Extract the chunk and append it to the list
-            chunk = text[start:end]
-            chunks.append(chunk)
-
-            # Move the start index forward, considering overlap
-            start += self.characters_per_chunk - self.overlap
-        
-        # Return the list of chunks
-        return chunks
-
-class TokenChunker(BaseChunker):
-    def __init__(self, tokens_per_chunk: int = 1000, overlap: int = 0, encoding: str = 'cl100k_base'):
-        # Initialize the chunker with the number of tokens per chunk
-        self.tokens_per_chunk = tokens_per_chunk
-        self.overlap = overlap
-        self.encoding = encoding
-
-    def split_text(self, text: str) -> List[str]:
-        fixed_token_chunker = FixedTokenChunker(
-            chunk_size=self.tokens_per_chunk, 
-            chunk_overlap=self.overlap,
-            encoding_name=self.encoding
-        )
-
-        token_chunks = fixed_token_chunker.split_text(text)
-
-        return token_chunks
-
-class RecursiveCharacterChunker(BaseChunker):
-    def __init__(self, characters_per_chunk: int = 1000, overlap: int = 0):
-        # Initialize the chunker with the number of characters per chunk
-        self.characters_per_chunk = characters_per_chunk
-        self.overlap = overlap
-
-    def split_text(self, text: str) -> List[str]:
-        recursive_token_chunker = RecursiveCharacterTextSplitter(
-            chunk_size=self.characters_per_chunk,
-            chunk_overlap=self.overlap,
-            separators=["\n\n", "\n", ".", "?", "!", " ", ""] # According to Research
-        )
-
-        recursive_chunks = recursive_token_chunker.split_text(text)
-
-        return recursive_chunks
-
-class ResTokenChunker(BaseChunker):
-    def __init__(self, tokens_per_chunk: int = 1000, overlap: int = 0, encoding: str = 'cl100k_base'):
-        # Initialize the chunker with the number of tokens per chunk
-        self.tokens_per_chunk = tokens_per_chunk
-        self.overlap = overlap
-        self.encoding = encoding
-
-    def split_text(self, text: str) -> List[str]:
-        recursive_token_chunker = RecursiveTokenChunker(
-            chunk_size=self.tokens_per_chunk, 
-            chunk_overlap=self.overlap,
-            separators=["\n\n", "\n", ".", "?", "!", " ", ""]
-        )
-
-        recursive_chunks = recursive_token_chunker.split_text(text)
-
-        return recursive_chunks
-
-
-def parse_phishing(file_directory:str,chunker:BaseChunker):
-    files = os.listdir(file_directory)
-    chunks = []
-    counter = 0
-    for file in files:
-        with open(file_directory + f'/{file}','r',encoding='utf-8') as f:
-            text = f.read()
-        
-        attack_type = file.split('.txt')[0]
-
-        text_chunks = chunker.split_text(text)
-        for chunk in text_chunks:
-            chunks.append(
-                {
-                    "id": f"phishing_{counter}",
-                    "content": chunk,
-                    "metadata": {
-                        "source": "Phishing Scenarios",
-                        "doc_type": "explainer",
-                        "title": attack_type,
-                        "lang": "en",
-                    }
-                }
-            )
-            counter+=1
-
-    return chunks
-
-
-
-def parse_gdpr(file_directory:str,chunker:BaseChunker):
-    files = os.listdir(file_directory)
-    chunks = []
-    counter = 0
-    for file in files:
-        with open(file_directory + f'/{file}','r',encoding='utf-8') as f:
-            text = f.read()
-        
-        title = file.split('.txt')[0]
-
-        text_chunks = chunker.split_text(text)
-        for chunk in text_chunks:
-            chunks.append(
-                {
-                    "id": f"gdpr_{counter}",
-                    "content": chunk,
-                    "metadata": {
-                        "source": "GDPR",
-                        "doc_type": "regulation",
-                        "title": title,
-                        "lang": "en"
-                    }
-                }
-            )   
-            counter+=1
-
-    return chunks
-
-def parse_law_cases(file_directory:str,chunker:BaseChunker):
-    files = os.listdir(file_directory)
-    chunks = []
-    counter = 0
-    case_id_ = 0
-    for file in files:
-        with open(file_directory + f'/{file}','r',encoding='utf-8') as f:
-            case = f.read()
-
-        match = re.search(r"Decision number:\s*(.*?)\n", case)
-        case_id = match.group(1).strip() if match else f"case_{case_id_}"
-        court = re.search(r"Court \(Civil/Criminal\):\s*(.*?)\n", case)
-        court_type = court.group(1).strip().lower() if court else "unknown"
-        outcome = re.search(r"Outcome \(innocent, guilty\):\s*(.*?)\n", case)
-        laws = re.findall(r"Law\s+\d+/\d+|Article\s+\d+[A-Z]?(\s+of\s+Law\s+\d+/\d+)?", case)
-        
-        title = file.split('.txt')[0]
-
-        text_chunks = chunker.split_text(case)
-        for chunk in text_chunks:
-            chunks.append({
-                "id": f"case_{counter}",
-                "content": chunk,
-                "metadata": {
-                    "title":title,
-                    "source": "Greek Court Decisions",
-                    "doc_type": "case_law",
-                    "jurisdiction": "GR",
-                    "case_id": case_id,
-                    "civil_or_criminal": court_type,
-                    "outcome": outcome.group(1).strip() if outcome else "unknown",
-                    "relevant_laws": list(set(laws)),
-                    "lang": "en"
-                }
-            })
-            counter+=1
-        case_id_ +=1 
-
-    return chunks
-
-def parse_cybercrime(file_directory:str,chunker:BaseChunker):
-    files = os.listdir(file_directory)
-    chunks = []
-    counter = 0
-    for file in files:
-        with open(file_directory + f'/{file}','r',encoding='utf-8') as f:
-            text = f.read()
-        
-        title = file.split('.txt')[0]
-        article_id = re.findall(r"Article\s+(\d+[A-Z]?)", title)
-        law_id = re.findall(r"[ΝΠΚ]\.?\s?\d+/?\d*", title)
-
-        text_chunks = chunker.split_text(text)
-        for chunk in text_chunks:
-            chunks.append({
-                "id": f"cybercrime_{counter}",
-                "content": chunk,
-                "metadata": {
-                    "title":title,
-                    "source": "Greek Cybercrime Law",
-                    "doc_type": "criminal_statute",
-                    "law": law_id[0] if law_id else "unknown",
-                    "article_number": article_id[0] if article_id else str(counter),
-                    "lang": "en",
-                    "jurisdiction": "GR"
-                }
-            })
-            counter+=1
-
-    return chunks
-
-
-# def load_vector_index(top_k:int,persist_dir:str, embedding, bm25_retriever):
-#     dense_index = FAISS.load_local(folder_path=persist_dir, embeddings=embedding,allow_dangerous_deserialization=True)
-#     dense_retriever = dense_index.as_retriever(search_type="similarity", search_kwargs={"k": top_k})
-#     return EnsembleRetriever(
-#         retrievers = [dense_retriever,bm25_retriever],
-#         weights=[0.7,0.3],
-#         unique_docs_by="page_content"
-#     )
-
-def load_vector_index(top_k:int,persist_dir:str, embedding):
+    Returns
+    -------
+    VectorIndexRetriever
+        A retriever configured for hybrid search with similarity top_k.
+    """
     storage_context = StorageContext.from_defaults(persist_dir=persist_dir)
-    index = load_index_from_storage(storage_context=storage_context,embed_model=embedding)
-    return index.as_retriever(similarity_top_k=top_k,search_type='hybrid')
+    index = load_index_from_storage(storage_context=storage_context, embed_model=embedding)
+    return index.as_retriever(similarity_top_k=top_k, search_type="hybrid")
 
 
 def load_reranker_model():
+    """
+    Load a Cohere client and finetuned reranker model.
+
+    Returns
+    -------
+    tuple
+        (Cohere client, finetuned model reference)
+    """
     co = cohere.ClientV2(settings.COHERE_API_KEY)
     ft = co.finetuning.get_finetuned_model(settings.COHERE_MODEL_ID)
-    return co,ft
-
-def initialize_indexes(top_k:int):
-
-    # 🔐 Phishing
-    phishing_retriever = load_vector_index(
-        10,
-        "./backend/vector_indexes/phishing_index_documents_trained_embedding",
-        HuggingFaceEmbeddings(model_name='./backend/cached_embedding_models/IoannisKat1__multilingual-e5-large-legal-matryoshka'),
-    )
-
-    # ⚖️ Law Cases – Recall
-    law_cases_index_recall_retriever = load_vector_index(
-        10,
-        "./backend/vector_indexes/law_cases_recall_index_documents_recall_trained_embedding",
-        HuggingFaceEmbeddings(model_name='./backend/cached_embedding_models/IoannisKat1__modernbert-embed-base-legal-matryoshka-2'),
-    )
-
-    # ⚖️ Law Cases – Precision
-    law_cases_index_precision_retriever = load_vector_index(
-        10,
-        "./backend/vector_indexes/law_cases_recall_index_documents_precision_trained_embedding",
-        HuggingFaceEmbeddings(model_name='./backend/cached_embedding_models/IoannisKat1__bge-m3-legal-matryoshka'),
-    )
-
-    # 🇬🇷 Greek Penal Code – Recall
-    gpc_index_recall_retriever = load_vector_index(
-        10,
-        "./backend/vector_indexes/gpc_recall_index_documents_recall_trained_embedding",
-        HuggingFaceEmbeddings(model_name='./backend/cached_embedding_models/IoannisKat1__legal-bert-base-uncased-legal-matryoshka'),
-    )
-
-    # 🇬🇷 Greek Penal Code – Precision
-    gpc_index_precision_retriever = load_vector_index(
-        10,
-        "./backend/vector_indexes/gpc_recall_index_documents_precision_trained_embedding",
-        HuggingFaceEmbeddings(model_name='./backend/cached_embedding_models/IoannisKat1__modernbert-embed-base-legal-matryoshka-2'),
-    )
+    return co, ft
 
 
-    # 🛡️ GDPR – Recall
-    gdpr_index_recall_retriever = load_vector_index(
-        10,
-        "./backend/vector_indexes/gdpr_recall_index_documents_recall_trained_embedding",
-        HuggingFaceEmbeddings(model_name='./backend/cached_embedding_models/IoannisKat1__modernbert-embed-base-legal-matryoshka-2'),
-    )
+def initialize_indexes(top_k: int):
+    """
+    Initialize and return all domain-specific retrievers.
 
-    # 🛡️ GDPR – Precision
-    gdpr_index_precision_retriever = load_vector_index(
-        10,
-        "./backend/vector_indexes/gdpr_precision_index_documents_precision_trained_embedding",
-        HuggingFaceEmbeddings(model_name='./backend/cached_embedding_models/IoannisKat1__multilingual-e5-large-legal-matryoshka'),
-    )
-    
+    Domains:
+    - Phishing
+    - Law Cases (Recall & Precision)
+    - Greek Penal Code (Recall & Precision)
+    - GDPR (Recall & Precision)
+
+    Returns
+    -------
+    dict[str, VectorIndexRetriever]
+    """
     return {
-        "phishing_retriever": phishing_retriever,
-        "law_cases_index_recall_retriever":law_cases_index_recall_retriever,
-        "law_cases_index_precision_retriever":law_cases_index_precision_retriever,
-        "gpc_index_recall_retriever":gpc_index_recall_retriever,
-        "gpc_index_precision_retriever":gpc_index_precision_retriever,
-        "gdpr_index_recall_retriever":gdpr_index_recall_retriever,
-        "gdpr_index_precision_retriever":gdpr_index_precision_retriever,
+        # 🛡 Phishing
+        "phishing_retriever": load_vector_index(
+            top_k,
+            "./backend/vector_indexes/phishing_index_documents_trained_embedding",
+            HuggingFaceEmbeddings(model_name="./backend/cached_embedding_models/IoannisKat1__multilingual-e5-large-legal-matryoshka"),
+        ),
+        # ⚖️ Law Cases
+        "law_cases_index_recall_retriever": load_vector_index(
+            top_k,
+            "./backend/vector_indexes/law_cases_recall_index_documents_recall_trained_embedding",
+            HuggingFaceEmbeddings(model_name="./backend/cached_embedding_models/IoannisKat1__modernbert-embed-base-legal-matryoshka-2"),
+        ),
+        "law_cases_index_precision_retriever": load_vector_index(
+            top_k,
+            "./backend/vector_indexes/law_cases_recall_index_documents_precision_trained_embedding",
+            HuggingFaceEmbeddings(model_name="./backend/cached_embedding_models/IoannisKat1__bge-m3-legal-matryoshka"),
+        ),
+        # 🇬🇷 Greek Penal Code
+        "gpc_index_recall_retriever": load_vector_index(
+            top_k,
+            "./backend/vector_indexes/gpc_recall_index_documents_recall_trained_embedding",
+            HuggingFaceEmbeddings(model_name="./backend/cached_embedding_models/IoannisKat1__legal-bert-base-uncased-legal-matryoshka"),
+        ),
+        "gpc_index_precision_retriever": load_vector_index(
+            top_k,
+            "./backend/vector_indexes/gpc_recall_index_documents_precision_trained_embedding",
+            HuggingFaceEmbeddings(model_name="./backend/cached_embedding_models/IoannisKat1__modernbert-embed-base-legal-matryoshka-2"),
+        ),
+        # 🛡 GDPR
+        "gdpr_index_recall_retriever": load_vector_index(
+            top_k,
+            "./backend/vector_indexes/gdpr_recall_index_documents_recall_trained_embedding",
+            HuggingFaceEmbeddings(model_name="./backend/cached_embedding_models/IoannisKat1__modernbert-embed-base-legal-matryoshka-2"),
+        ),
+        "gdpr_index_precision_retriever": load_vector_index(
+            top_k,
+            "./backend/vector_indexes/gdpr_precision_index_documents_precision_trained_embedding",
+            HuggingFaceEmbeddings(model_name="./backend/cached_embedding_models/IoannisKat1__multilingual-e5-large-legal-matryoshka"),
+        ),
     }
 
+
+# -------------------------
+# LangGraph State
+# -------------------------
 class AgentState(TypedDict):
+    """Shared state for the pipeline's LangGraph workflow."""
     user_query: str
-    language: str
-    summarized_context:str
+    summarized_context: str
     search_results: str
-    questions: List[str]                    # ✅ Good
-    query_classification: Annotated[Dict[str, List[str]], operator.or_]     # ✅ Good
-    retrieved_docs: Annotated[Dict[str, List], operator.or_]                # ✅ Good
-    context: Annotated[Dict[str, str], operator.or_] 
+    questions: List[str]
+    query_classification: Annotated[Dict[str, List[str]], operator.or_]
+    retrieved_docs: Annotated[Dict[str, List], operator.or_]
+    context: Annotated[Dict[str, str], operator.or_]
 
 
-class LLM_Pipeline():
-    def __init__(self,index_mapping:dict[str,VectorIndexRetriever],reranker_model:CrossEncoder|GetFinetunedModelResponse,cohere_client:cohere.ClientV2|None = None):
+# -------------------------
+# LLM Pipeline Orchestrator
+# -------------------------
+class LLM_Pipeline:
+    """
+    LangGraph-based pipeline for multilingual, legal RAG.
+
+    Steps
+    -----
+    1. starting_prompt: check if query is legal, safe, in-domain.
+    2. query_translation: translate non-English queries to English.
+    3. query_rewriting: produce paraphrases to improve recall.
+    4. query_classification: assign categories (GDPR, GPC, Phishing, Cases).
+    5. retrieving_docs: fetch from indexes, rerank with CrossEncoder or Cohere.
+    6. get_context: summarize retrieved docs into coherent context.
+    7. web_search: augment with TavilySearch.
+    8. run_full_pipeline: execute all steps and return final structured response.
+
+    Attributes
+    ----------
+    index_mapping : dict[str, VectorIndexRetriever]
+        Preloaded retrievers.
+    reranker_model : CrossEncoder | GetFinetunedModelResponse
+        Model used to rerank retrieved documents.
+    cohere_client : cohere.ClientV2 | None
+        Optional client for Cohere reranking.
+    model : ChatOpenAI
+        LLM used for classification, rewriting, summarization.
+    """
+
+    def __init__(self, index_mapping, reranker_model, cohere_client=None):
         self.cohere_client = cohere_client
         self.index_mapping = index_mapping
         self.reranker_model = reranker_model
+        self.model = ChatOpenAI(
+            model=settings.OPEN_AI_MODEL,
+            api_key=settings.API_KEY,
+            temperature=0.7,
+        )
+        self.dict_lang = {
+            "en": "English",
+            "es": "Spanish",
+            "fr": "French",
+            "de": "German",
+            "it": "Italian",
+            "pt": "Portuguese",
+            "nl": "Dutch",
+            "ru": "Russian",
+            "ja": "Japanese",
+            "zh-cn": "Chinese (Simplified)",
+            "zh-tw": "Chinese (Traditional)",
+            "ko": "Korean",
+            "ar": "Arabic",
+            "hi": "Hindi",
+            "bn": "Bengali",
+            "tr": "Turkish",
+            "vi": "Vietnamese",
+            "pl": "Polish",
+            "uk": "Ukrainian",
+            "el": "Greek",
+            "ro": "Romanian",
+            "sv": "Swedish",
+            "fi": "Finnish",
+            "no": "Norwegian",
+            "da": "Danish",
+            "hu": "Hungarian",
+            "cs": "Czech",
+            "sk": "Slovak",
+            "ca": "Catalan",
+            "id": "Indonesian",
+            "ms": "Malay",
+            "th": "Thai",
+            "fa": "Persian",
+            "he": "Hebrew"
+        }
+        self.app = self.initialize_workflow()
 
-    def retrieving_docs(self,query:str,index_mapping:dict[str,VectorIndexRetriever],indexes:List[VectorIndexRetriever],reranker_model:CrossEncoder|GetFinetunedModelResponse,cohere_client:cohere.client_v2.ClientV2|None):
+    def retrieving_docs(
+        self,
+        query: str,
+        index_mapping: dict[str, VectorIndexRetriever],
+        indexes: List[VectorIndexRetriever],
+        reranker_model: CrossEncoder | GetFinetunedModelResponse,
+        cohere_client: cohere.client_v2.ClientV2 | None,
+    ):
+        """
+        Retrieve and rerank documents for a given query.
+
+        Parameters
+        ----------
+        query : str
+            The user query (in English, after translation).
+        index_mapping : dict[str, VectorIndexRetriever]
+            Mapping of index keys to retrievers.
+        indexes : list[str]
+            Keys from index_mapping specifying which retrievers to query.
+        reranker_model : CrossEncoder | GetFinetunedModelResponse
+            Model used to rerank results. Supports SentenceTransformer CrossEncoder
+            or a Cohere finetuned model reference.
+        cohere_client : cohere.ClientV2 | None
+            Cohere client, required if reranker_model is Cohere.
+
+        Returns
+        -------
+        list[list]
+            List of [doc_text, metadata, score] for top reranked documents.
+        """
         retrieved_nodes = []
         for index in indexes:
             index = index_mapping[index]
             nodes = index.retrieve(query)
             retrieved_nodes.append([langchainDocument(page_content=node.text,metadata=node.metadata) for node in nodes])
-
-            # nodes = index.get_relevant_documents(query)
-            # retrieved_nodes.append(nodes)
 
         if isinstance(reranker_model,CrossEncoder):
             documents = []
@@ -440,46 +318,86 @@ class LLM_Pipeline():
 
             return [[documents[i][0],documents[i][1],relevance_scores[i]] for i in doc_indexing]
 
+    def starting_prompt(self, query: str):
+        """
+        Classify a query as legal, non-legal, or unsafe.
 
-    def translation_agent(self,state):
-        dict_lang = {
-            "en": "English",
-            "es": "Spanish",
-            "fr": "French",
-            "de": "German",
-            "it": "Italian",
-            "pt": "Portuguese",
-            "nl": "Dutch",
-            "ru": "Russian",
-            "ja": "Japanese",
-            "zh-cn": "Chinese (Simplified)",
-            "zh-tw": "Chinese (Traditional)",
-            "ko": "Korean",
-            "ar": "Arabic",
-            "hi": "Hindi",
-            "bn": "Bengali",
-            "tr": "Turkish",
-            "vi": "Vietnamese",
-            "pl": "Polish",
-            "uk": "Ukrainian",
-            "el": "Greek",
-            "ro": "Romanian",
-            "sv": "Swedish",
-            "fi": "Finnish",
-            "no": "Norwegian",
-            "da": "Danish",
-            "hu": "Hungarian",
-            "cs": "Czech",
-            "sk": "Slovak",
-            "ca": "Catalan",
-            "id": "Indonesian",
-            "ms": "Malay",
-            "th": "Thai",
-            "fa": "Persian",
-            "he": "Hebrew"
-        }
+        Behavior
+        --------
+        - If legal: returns [True, None]
+        - If non-legal: returns [False, "<short helpful answer + reminder>"]
+        - If unsafe (medical, financial, illegal, etc.): returns
+          [False, "I'm a legal assistant. I cannot answer unsafe..."]
 
-        lang = detect(state['user_query'])
+        Parameters
+        ----------
+        query : str
+            The raw user query.
+
+        Returns
+        -------
+        list
+            [bool, str | None] indicating if legal and optional message.
+        """
+        lang = detect(query)
+        prompt = """
+            You are a highly competent legal assistant.
+
+            Your job is to:
+            1. Determine whether the following user query is a **legal** question.
+            2. If non-legal: [False, "Helpful, short answer **plus** a clear reminder that you are a legal assistant."]
+            3. If the query is inappropriate, illegal, or unsafe: [False, "I'm a legal assistant. I cannot answer unsafe or inappropriate questions."]
+
+            SAFETY RULES:
+                - NEVER provide advice about:
+                    - Medical conditions or treatments
+                    - Mental health or suicide
+                    - Financial advice or investments
+                    - Hacking, fraud, or illegal activities
+                    - Politics, religion, or violent topics
+                    - If the query is unsafe or inappropriate, respond:
+                    [False, "I'm a legal assistant. I cannot answer unsafe or inappropriate questions."]
+                - If the question is just general (like math, geography, etc.), answer the question briefly and remind the user that you are a legal assistant.
+                    For example:
+                        User Query: What is the capital of France?
+                        Response: [False, "The capital of France is Paris. However, I am a legal assistant and can only provide legal information."]
+
+            ROLE GUIDELINES:
+                - Stay in character: you're a **legal assistant**, not a doctor, therapist, investor, or general assistant.
+                - Be professional, respectful, and neutral.
+                - Respond in {lang}
+
+            FORMAT:
+                - You must respond ONLY in this exact format:
+                [True, None] or [False, "Your message here"]
+
+            ---
+
+            User Query: {query}
+
+        """    
+
+        response = self.model.invoke(prompt.format(query=query,lang=self.dict_lang[lang]))
+        response_content = str(response.content).strip()
+        res = ast.literal_eval(response_content)
+        return res
+
+
+    def query_translation(self, query: str):
+        """
+        Translate query into English if necessary.
+
+        Parameters
+        ----------
+        query : str
+            User query in any supported language.
+
+        Returns
+        -------
+        tuple
+            (language_name, translated_query)
+        """
+        lang = detect(query)
         if lang != 'en':
             prompt = """
             You are a highly competent legal assistant. Your task is to accurately translate the following legal query into English while preserving its original meaning, legal terminology, and nuance.
@@ -487,26 +405,103 @@ class LLM_Pipeline():
             Text to translate:
             {query}
 
-            Provide only the translated version. Do not explain, rephrase, or annotate.
+            Provide only the translated version. Do not explain, rephrase, or annotate. 
             """
 
-            prompt = PromptTemplate(input_variables=['query'],template=prompt)
-            model = ChatOpenAI(model=settings.OPEN_AI_MODEL,api_key=settings.API_KEY,   temperature=0.7 )
-            agent_chain = prompt | model
-
-            response = agent_chain.invoke({
-                "query":state['user_query']
-            })
-
+            response = self.model.invoke(prompt.format(query=query))
             response_content = str(response.content).strip()
+            query = response_content
 
-            state['user_query'] = response_content
-
-        state['language'] = dict_lang[lang]
-
-        return state
+        language = self.dict_lang[lang]
+        return language,query
     
-    def query_rewriting(self,state):
+    def web_search(self, query: str):
+        """
+        Perform a web search via TavilySearch and summarize results.
+
+        Parameters
+        ----------
+        query : str
+            User query (in English).
+
+        Returns
+        -------
+        dict
+            {'search_results': str} summarizing retrieved context.
+        """
+        search_tool = TavilySearch(
+            max_results=5,
+            include_answer=True,
+            include_raw_content=True,
+            include_images=False,
+            tavily_api_key=settings.TAVILY_API_KEY,
+        )
+
+        search_results = search_tool.invoke({"query": query})
+
+        summarized_prompt = """
+            You are a highly competent legal assistant designed to provide accurate, well-reasoned, and context-aware answers to legal questions. Your responses should be clear, concise, and grounded in the provided legal context and conversation history.
+
+            I want you to summarize the following context based on the user query. Keep the most relevant information that can help you answer the user query. Keep also related metadata.
+            
+            Context:{summarized_context}
+
+            User Query:{query}
+        """
+
+        response = self.model.invoke(summarized_prompt.format(
+            query=query,
+            summarized_context='\n'.join(f'{result["title"]} (score:{result["score"]}) url:{result["url"]} content:{result["content"]}' for result in search_results)
+        ))
+
+        summarized_context = str(response.content).strip()
+        return {'search_results': summarized_context}
+    
+    def rag_pipeline(self, query: str):
+        """
+        Run the LangGraph workflow (query rewriting -> classification -> retrieval -> context).
+
+        Parameters
+        ----------
+        query : str
+            User query in English.
+
+        Returns
+        -------
+        dict
+            {
+              'query': query,
+              'summarized_context': str
+            }
+        """
+        config = {"configurable": {"thread_id": f"{uuid4()}"}}
+        result = self.app.invoke({
+            "user_query":query,
+            "questions": [],  # <-- ADD THIS
+            "query_classification": {},  # <-- FIXED
+            "retrieved_docs": {},  # <-- ADD THIS
+            "context": {},  # <-- ALREADY GOOD
+        }, config)
+
+        return {"query":query,
+            'summarized_context':result['summarized_context'],
+            }
+    
+    def query_rewriting(self, state):
+        """
+        Generate two paraphrased variations of the query.
+
+        Parameters
+        ----------
+        state : dict
+            Workflow state containing 'user_query'.
+
+        Returns
+        -------
+        dict
+            {'questions': {0: original, 1: rewrite1, 2: rewrite2}}
+        """
+
         prompt = """
         Rewrite the following user query into 2 semantically similar but linguistically diverse variations.
 
@@ -522,17 +517,11 @@ class LLM_Pipeline():
         Return your response as a list formatted like:
         Output: ["First variation", "Second variation"]
         """
-        prompt = PromptTemplate(input_variables=['query'],template=prompt)
-
-        model = ChatOpenAI(model=settings.OPEN_AI_MODEL,api_key=settings.API_KEY,   temperature=0.7 )
-        agent_chain = prompt | model
 
         retries = 3
         for _ in range(retries):
             try:
-                response = agent_chain.invoke({
-                    "query":state['user_query']
-                })
+                response = self.model.invoke(prompt.format(query = state['user_query']))
 
                 response_content = str(response.content).strip()
                 res = response_content.split("Output:")
@@ -550,7 +539,20 @@ class LLM_Pipeline():
         
         raise RuntimeError("❌ Failed to rewrite query after multiple attempts.")
 
-    def run_classifications_parallel(self,state):
+    def run_classifications_parallel(self, state):
+        """
+        Classify original query + rewrites in parallel.
+
+        Parameters
+        ----------
+        state : dict
+            Workflow state containing 'questions'.
+
+        Returns
+        -------
+        dict
+            {'query_classification': {0: [...], 1: [...], 2: [...]}}
+        """
         levels = [0,1,2]
         results = {}
 
@@ -573,7 +575,22 @@ class LLM_Pipeline():
         state['query_classification'] = combined
         return {'query_classification': state['query_classification']}
 
-    def query_classification(self,state,level:int):
+    def query_classification(self, state, level: int):
+        """
+        Classify a query into one or more legal categories.
+
+        Parameters
+        ----------
+        state : dict
+            Workflow state containing 'questions'.
+        level : int
+            Which query variant to classify.
+
+        Returns
+        -------
+        dict
+            {'query_classification': {level: [query_text, index_keys]}}
+        """
         prompt ="""  
             You are a legal assistant. Your task is to classify a user's query into one or more of the following legal categories:
 
@@ -602,14 +619,8 @@ class LLM_Pipeline():
             "{query}"
 
         """
-        prompt = PromptTemplate(input_variables=['query'],template=prompt)
-        model = ChatOpenAI(model=settings.OPEN_AI_MODEL,api_key=settings.API_KEY,   temperature=0.7 )
-        agent_chain = prompt | model
 
-        response = agent_chain.invoke({
-            "query":state['questions'][level]
-        })
-
+        response = self.model.invoke(prompt.format(query=state['questions'][level]))
         response_content = str(response.content).strip()
 
         res = response_content.split("Output:")
@@ -642,17 +653,21 @@ class LLM_Pipeline():
             state['query_classification'] = {level:[state['questions'][level],None]}
 
         return {'query_classification':state['query_classification']}
-
-    def query_classification_1(self,state):
-        return self.query_classification(state,0)
-
-    def query_classification_2(self,state):
-        return self.query_classification(state,1)
-
-    def query_classification_3(self,state):
-        return self.query_classification(state,2)
     
-    def run_retrievals_parallel(self,state):
+    def run_retrievals_parallel(self, state):
+        """
+        Retrieve documents for each query variant in parallel.
+
+        Parameters
+        ----------
+        state : dict
+            Workflow state with classifications.
+
+        Returns
+        -------
+        dict
+            {'retrieved_docs': {0: [...], 1: [...], 2: [...]}}
+        """
         levels = [0,1,2]
         results = {}
 
@@ -670,22 +685,45 @@ class LLM_Pipeline():
         return {'retrieved_docs': state['retrieved_docs']}
 
 
-    def retrieve_docs(self,state,level):
+    def retrieve_docs(self, state, level: int):
+        """
+        Retrieve docs for a single query variant.
+
+        Parameters
+        ----------
+        state : dict
+            Workflow state with classifications.
+        level : int
+            Which query variant to process.
+
+        Returns
+        -------
+        list | None
+            List of [doc_text, metadata, score] or None if no indexes found.
+        """
         retrieved_documents = self.retrieving_docs(state['questions'][0],self.index_mapping,state['query_classification'][level][1],self.reranker_model,self.cohere_client) if state['query_classification'][level][1] else None
         return retrieved_documents
-        # state['retrieved_docs'][level] = retrieved_documents
-        # return {level:state['retrieved_docs'][level]}
     
-    def retrieve_docs_1(self,state):
-        return {'retrieved_docs': self.retrieve_docs(state,0)}
+    def get_context(self, state):
+        """
+        Summarize retrieved documents into a coherent context.
 
-    def retrieve_docs_2(self,state):
-        return {'retrieved_docs': self.retrieve_docs(state,1)}
+        Parameters
+        ----------
+        state : dict
+            Workflow state containing 'retrieved_docs' and 'questions'.
 
-    def retrieve_docs_3(self,state):
-        return {'retrieved_docs': self.retrieve_docs(state,2)}
+        Behavior
+        --------
+        - Iterates through retrieval results for each query variant (0,1,2).
+        - Summarizes each batch of retrieved documents via the LLM.
+        - Concatenates summaries into a single combined context.
 
-    def get_context(self,state):
+        Returns
+        -------
+        dict
+            {'summarized_context': str} – the aggregated context string.
+        """
         summarized_prompt = """
             You are a highly competent legal assistant designed to provide accurate, well-reasoned, and context-aware answers to legal questions. Your responses should be clear, concise, and grounded in the provided legal context and conversation history.
 
@@ -696,41 +734,48 @@ class LLM_Pipeline():
             User Query:{query}
         """
 
-        summarized_prompt = PromptTemplate(input_variables=['query','summarized_context'],template=summarized_prompt)
-        model = ChatOpenAI(model=settings.OPEN_AI_MODEL,api_key=settings.API_KEY,   temperature=0.7 )
-        agent_chain = summarized_prompt | model
-
         def summarize_level(level:int):
             if not state['retrieved_docs'][level]:
                 return level, ""
-            retrieved_documents = state['retrieved_docs'][level]
-            if len(retrieved_documents) != 0:
+            retrieved_documents = state['retrieved_docs'][level][level]
+            if len(retrieved_documents) == 0:
                 return level, ""
             
             joined_context = '\n'.join(f'{i}) {retrieved_documents[i][0]} (score:{retrieved_documents[i][2]}) metadata:{retrieved_documents[i][1]}' for i in range(len(retrieved_documents)))
 
-            response = agent_chain.invoke({
-                "query":state['user_query'],
-                "summarized_context":joined_context
-            })
+            response = self.model.invoke(summarized_prompt.format(
+                query=state['questions'][level],
+                summarized_context=joined_context
+            ))
 
             return level, str(response.content).strip()
         
         summarized_by_level = {}
         with ThreadPoolExecutor(max_workers=3) as executor:
             futures = {executor.submit(summarize_level, level): level for level in range(3)}
-            summarized_contexts = {}
             for future in as_completed(futures):
                 level, summary = future.result()
-                summarized_contexts[level] = summary
+                summarized_by_level[level] = summary
 
         full_summary = "\n\n".join(
             summarized_by_level[i] for i in range(3) if i in summarized_by_level
         )
-
         return {'summarized_context': full_summary}
     
-    def get_search_results(self,state):
+    def get_search_results(self, query: str):
+        """
+        Perform Tavily web search and summarize results.
+
+        Parameters
+        ----------
+        query : str
+            User query in English.
+
+        Returns
+        -------
+        dict
+            {'search_results': str} – summarized context from Tavily results.
+        """
         search_tool = TavilySearch(
             max_results=5,
             include_answer=True,
@@ -739,99 +784,124 @@ class LLM_Pipeline():
             tavily_api_key=settings.TAVILY_API_KEY,
         )
 
-        search_response = search_tool.invoke({"query": state['user_query']})
-        
+        search_results = search_tool.invoke({"query": query})
 
         summarized_prompt = """
             You are a highly competent legal assistant designed to provide accurate, well-reasoned, and context-aware answers to legal questions. Your responses should be clear, concise, and grounded in the provided legal context and conversation history.
 
-            I want you to summarize the following context based on the user query. Keep the most relevant information that can help you answer the user query. Keep also related metadata in the summarized response.
+            I want you to summarize the following context based on the user query. Keep the most relevant information that can help you answer the user query. Keep also related metadata.
             
             Context:{summarized_context}
 
             User Query:{query}
         """
 
-        summarized_prompt = PromptTemplate(input_variables=['query','summarized_context'],template=summarized_prompt)
-        model = ChatOpenAI(model=settings.OPEN_AI_MODEL,api_key=settings.API_KEY,   temperature=0.7 )
-        agent_chain = summarized_prompt | model
-
-        response = agent_chain.invoke({
-            "query":state['user_query'],
-            "summarized_context":'\n'.join(f"{result['title']}) {result['content']} (score:{result['score']}) metadata:{result['url']}" for result in search_response['results']),
-        })
+        response = self.model.invoke(summarized_prompt.format(
+            query=query,
+            summarized_context='\n'.join(f'{result["title"]} (score:{result["score"]}) url:{result["url"]} content:{result["content"]}' for result in search_results)
+        ))
 
         summarized_context = str(response.content).strip()
-        
         return {'search_results': summarized_context}
 
     def initialize_workflow(self):
+        """
+        Build the LangGraph workflow that wires together pipeline nodes.
+
+        Nodes
+        -----
+        - query_rewriting → generate paraphrases
+        - parallel_classification → classify all query variations
+        - parallel_retrieval → retrieve docs for classified categories
+        - get_context → summarize retrieved docs
+
+        Edges
+        -----
+        query_rewriting → parallel_classification  
+        parallel_classification → parallel_retrieval  
+        parallel_retrieval → get_context  
+
+        Returns
+        -------
+        StateGraph
+            Compiled LangGraph app with MemorySaver checkpointing.
+        """
         workflow = StateGraph(AgentState)
 
-        ## Query translation
-        workflow.add_node("translation",self.translation_agent)
         ## Query re-writing
         workflow.add_node('query_rewriting',self.query_rewriting)
-
         ## Query Categorization of query and variants
         workflow.add_node('parallel_classification',self.run_classifications_parallel)
-
-        # workflow.add_node("query_categorization_1",self.query_classification_1)
-        # workflow.add_node("query_categorization_2",self.query_classification_2)
-        # workflow.add_node("query_categorization_3",self.query_classification_3)
         ## Document Retrieval
         workflow.add_node('parallel_retrieval',self.run_retrievals_parallel)
-        # workflow.add_node("retrieve_documents_1",self.retrieve_docs_1)
-        # workflow.add_node("retrieve_documents_2",self.retrieve_docs_2)
-        # workflow.add_node("retrieve_documents_3",self.retrieve_docs_3)
         ## Document Aggregation and Response
         workflow.add_node("get_context",self.get_context)
-        ## Search Flow
-        workflow.add_node("get_search_results",self.get_search_results)
 
-        ## Query translation -> Query re-writing
-        workflow.add_edge("translation","query_rewriting")
-        workflow.add_edge("translation","get_search_results")
         ## Query re-writing -> Query Categorization
         workflow.add_edge("query_rewriting","parallel_classification")
-        # workflow.add_edge("query_rewriting","query_categorization_1")
-        # workflow.add_edge("query_rewriting","query_categorization_2")
-        # workflow.add_edge("query_rewriting","query_categorization_3")
         # ## Query Categorization -> Retrieval Documents
         workflow.add_edge("parallel_classification","parallel_retrieval")
-        # workflow.add_edge("query_categorization_1","retrieve_documents_1")
-        # workflow.add_edge("query_categorization_2","retrieve_documents_2")
-        # workflow.add_edge("query_categorization_3","retrieve_documents_3")
         # ## Retrieval Documents -> Document Aggregation and Response
         workflow.add_edge("parallel_retrieval","get_context")
-        # workflow.add_edge("retrieve_documents_1","get_context")
-        # workflow.add_edge("retrieve_documents_2","get_context")
-        # workflow.add_edge("retrieve_documents_3","get_context")
-        
 
-        workflow.set_entry_point("translation")
+        workflow.set_entry_point("query_rewriting")
         checkpointer = MemorySaver()
         app = workflow.compile(checkpointer = checkpointer)
 
         return app
     
-    def get_context_from_graph(self,app:CompiledStateGraph,user_query:str):
-        config = {"configurable": {"thread_id": f"{uuid4()}"}}
-        result = app.invoke({
-            "language":'',
-            "user_query":user_query,
-            "questions": [],  # <-- ADD THIS
-            "query_classification": {},  # <-- FIXED
-            "retrieved_docs": {},  # <-- ADD THIS
-            "context": {},  # <-- ALREADY GOOD
-        }, config)
+    def run_full_pipeline(self, query: str):
+        """
+        Execute the full RAG workflow for a user query.
 
-        return {"query":user_query,
-            'summarized_context':result['summarized_context'],
-            'search_results':result['search_results'],
-            "language":result['language']
-            }
+        Steps
+        -----
+        1. starting_prompt → checks safety & domain.
+        2. query_translation → ensures English query.
+        3. Run web_search + rag_pipeline in parallel.
+        4. Aggregate results: legal context + web results.
+
+        Parameters
+        ----------
+        query : str
+            Raw user query (any language).
+
+        Returns
+        -------
+        dict | str
+            If query is legal:
+                {
+                  "query": translated_query,
+                  "summarized_context": str,
+                  "search_results": str,
+                  "language": str
+                }
+            If query is non-legal or unsafe:
+                str – helpful or refusal message.
+        """
+        start_time = time.time()
         
+        res = self.starting_prompt(query)
+        if res[0] == True:
+            language, translated_query = self.query_translation(query)
+
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                future_search = executor.submit(self.web_search, translated_query)
+                future_rag = executor.submit(self.rag_pipeline, translated_query)
+
+            end_time = time.time()
+            print(f"Pipeline execution time: {end_time - start_time:.2f} seconds")
+            return {"query":translated_query,
+                'summarized_context':future_rag.result()['summarized_context'],
+                'search_results':future_search.result()['search_results'],
+                "language":language
+                }
+
+        else: 
+            end_time = time.time()
+            print(f"Pipeline execution time: {end_time - start_time:.2f} seconds")
+            return res[1]
+    
     
 
 

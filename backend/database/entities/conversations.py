@@ -1,21 +1,65 @@
 from ..config.connection_engine import declarativeBase
-from sqlalchemy.dialects.mssql import DATETIME
 from sqlalchemy.dialects.postgresql import UUID as pgUUID
-from sqlalchemy import Column, ForeignKey, DateTime
-from sqlalchemy import VARCHAR
-from sqlalchemy import TEXT
-from sqlalchemy.orm import Mapped,mapped_column
+from sqlalchemy import Column, ForeignKey, DateTime, TEXT
+from sqlalchemy.orm import Mapped, mapped_column
 from uuid import UUID
 from datetime import datetime, timezone
 
 class Conversation(declarativeBase):
-    __tablename__ = 'conversation'
-    id: Mapped[UUID] = mapped_column(pgUUID(as_uuid=True),primary_key = True)
-    conversation_name:Mapped[str] = mapped_column(TEXT,nullable=False)
-    user_id: Mapped[UUID] = mapped_column(pgUUID(as_uuid=True), ForeignKey('app_user.id'),nullable=False)
-    last_updated: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc))
+    """
+    ORM model for the `conversation` table.
+    Represents a conversation belonging to a specific user.
 
-    def __init__(self,conversation_id,conversation_name,user_id,last_updated):
+    Attributes
+    ----------
+    id : UUID
+        Primary key. Unique identifier for the conversation.
+    conversation_name : str
+        Human-readable name/title of the conversation.
+    user_id : UUID
+        Foreign key reference to the `app_user` table (the owner of the conversation).
+    last_updated : datetime
+        Timestamp of the last update to the conversation.
+        Defaults to the current UTC time.
+    """
+
+    __tablename__ = 'conversation'
+
+    id: Mapped[UUID] = mapped_column(
+        pgUUID(as_uuid=True), primary_key=True
+    )
+    """Primary key. UUID of the conversation."""
+
+    conversation_name: Mapped[str] = mapped_column(
+        TEXT, nullable=False
+    )
+    """Name of the conversation (cannot be null)."""
+
+    user_id: Mapped[UUID] = mapped_column(
+        pgUUID(as_uuid=True), ForeignKey('app_user.id'), nullable=False
+    )
+    """Foreign key reference to the `app_user` table (owner)."""
+
+    last_updated: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.now(timezone.utc)
+    )
+    """Timestamp when the conversation was last updated. Defaults to now (UTC)."""
+
+    def __init__(self, conversation_id: UUID, conversation_name: str, user_id: UUID, last_updated):
+        """
+        Initialize a new Conversation object.
+
+        Parameters
+        ----------
+        conversation_id : UUID
+            Unique identifier for the conversation.
+        conversation_name : str
+            Name/title of the conversation.
+        user_id : UUID
+            The ID of the user who owns this conversation.
+        last_updated : datetime | str
+            Last updated timestamp. Accepts datetime or ISO8601 string.
+        """
         self.id = conversation_id
         self.conversation_name = conversation_name
         self.user_id = user_id
@@ -24,6 +68,15 @@ class Conversation(declarativeBase):
         else:
             self.last_updated = last_updated
 
-    def __str__(self):
-        return (f"User: id:{self.user_id}, conversation: {self.conversation_name}, time_created: {self.last_updated}")
+    def __str__(self) -> str:
+        """
+        Return a human-readable string representation of the Conversation.
 
+        Returns
+        -------
+        str
+            A formatted string containing user ID, conversation name, and last updated timestamp.
+        """
+        return (
+            f"User: id:{self.user_id}, conversation: {self.conversation_name}, time_created: {self.last_updated}"
+        )

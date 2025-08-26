@@ -1,40 +1,83 @@
+"""
+JWT utilities for issuing and verifying access tokens.
+
+Functions
+---------
+create_access_token(data: dict) -> str
+    Create a signed JWT access token with an expiration (`exp`) claim.
+verify_token(token: str) -> str | None
+    Verify a JWT's signature & expiration and return the subject (`sub`) if valid.
+
+Environment contract (from `settings`)
+--------------------------------------
+SECRET_KEY : str
+    HMAC signing key for JWTs.
+ALGORITHM : str
+    JWT signing algorithm (e.g., "HS256").
+ACCESS_TOKEN_EXPIRE_MINUTES : int
+    Token lifetime window in minutes.
+"""
+
 from datetime import datetime
+from typing import Optional
+
 from jose import jwt, JWTError
 from backend.database.config.config import settings
 
-def create_access_token(data:dict):
+
+def create_access_token(data: dict) -> str:
     """
-    Create an access token with an expiration time.
+    Create a signed JWT access token.
+
+    Parameters
+    ----------
+    data : dict
+        Claims to embed in the token. Include a 'sub' (subject/username/user_id)
+        if you plan to retrieve it in `verify_token`.
+
+    Returns
+    -------
+    str
+        Encoded JWT string.
+
+    Notes
+    -----
+    - Adds an `exp` (expiration) claim calculated from ACCESS_TOKEN_EXPIRE_MINUTES.
+    - Uses `settings.SECRET_KEY` and `settings.ALGORITHM` for signing.
+    - Do not include sensitive secrets (like raw passwords) in `data`.
     """
     expiration_time = settings.ACCESS_TOKEN_EXPIRE_MINUTES
     encoding = data.copy()
+    # exp is a NumericDate (seconds since epoch)
     expires = int(datetime.now().timestamp()) + (int(expiration_time) * 60)
-    encoding.update({"exp":expires})
-    return jwt.encode(encoding,settings.SECRET_KEY,algorithm=settings.ALGORITHM)
+    encoding.update({"exp": expires})
+    return jwt.encode(encoding, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
-def verify_token(token:str):
+
+def verify_token(token: str) -> Optional[str]:
+    """
+    Verify a JWT and return its subject.
+
+    Parameters
+    ----------
+    token : str
+        Encoded JWT string from the client (e.g., cookie or Authorization header).
+
+    Returns
+    -------
+    str | None
+        The `sub` claim (subject) if the token is valid, otherwise None.
+
+    Behavior
+    --------
+    - Decodes and validates the signature and expiration using SECRET_KEY/ALGORITHM.
+    - Returns `payload.get('sub')` for downstream authZ logic.
+    - On any JWTError (invalid signature, expired, malformed), returns None.
+    """
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        return payload.get('sub')
+        return payload.get("sub")
     except JWTError as e:
+        # Consider replacing print with structured logging in production
         print(e)
         return None
-    
-# def initialize_model():
-#     #### For LLM open source models via Ollama
-#     # llm_model = ChatOllama(
-#     #     model = "deepseek-r1:1.5b",
-#     #     base_url = os.getenv("OLLAMA_SERVER_URL"),
-#     #     temperature = 0.7,
-#     #     top_p = 1.0,
-#     #     repeat_penalty = 1.0,
-#     # )
-#     # return llm_model
-#     os.environ['OPENAI_API_KEY'] = settings.API_KEY
-#     llm = OpenAI(streaming=True)
-#     storage_context = StorageContext.from_defaults(persist_dir='backend/api/aila_indices')
-#     index = load_index_from_storage(storage_context)
-#     query_engine = index.as_query_engine(llm=llm,similarity_top_k=8)
-#     return query_engine
-
-

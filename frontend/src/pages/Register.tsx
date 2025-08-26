@@ -1,8 +1,38 @@
+/**
+ * Register.tsx
+ * -------------------------------
+ * React component that handles **user registration** and **email verification**.
+ *
+ * Features:
+ * - New user registration with:
+ *   - username
+ *   - email
+ *   - password (double-entry check)
+ * - Server-side password policy enforced
+ * - Email verification workflow:
+ *   - After successful registration, user must verify via 6-digit code sent to email
+ *   - Code expires in 120s (timer with resend functionality)
+ *   - Resend code button reactivates only after expiration
+ * - Graceful error handling and accessibility with `aria-live`
+ * - TailwindCSS styled form with clear instructions
+ *
+ * States:
+ * - `verified`:
+ *    undefined → user not yet registered
+ *    false → registered but awaiting email verification
+ *    true → registration + verification completed → redirected to `/chat`
+ *
+ * Dependencies:
+ * - useAuth (AuthContext → RegisterUser, verifyCodeUser, resendCode)
+ * - react-router-dom (navigation)
+ */
+
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
 
 const Register = () => {
+    // ------------------ State ------------------
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [password_1, setNewPassword] = useState("");
@@ -12,17 +42,23 @@ const Register = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [verified, setVerified] = useState<boolean | undefined>(undefined);
     const [verificationCode, setVerificationCode] = useState("");
+
+    // Countdown timer for resend functionality
     const [timeLeft, setTimeLeft] = useState(120);
     const [timerKey, setTimerKey] = useState(0);
 
+    // ------------------ Refs ------------------
     const userRef = useRef<HTMLInputElement>(null);
     const errRef = useRef<HTMLParagraphElement>(null);
+
     const navigate = useNavigate();
 
+    // ------------------ Effects ------------------
     useEffect(() => {
         userRef.current?.focus();
     }, []);
 
+    // Prefill username/email if user context exists
     useEffect(() => {
         if (user?.verified === false && verified === undefined) {
             setUsername(user.username);
@@ -30,6 +66,7 @@ const Register = () => {
         }
     }, [])
 
+    // Reset timer when entering verification phase
     useEffect(() => {
         if (verified === false) {
             setTimeLeft(120);
@@ -37,6 +74,7 @@ const Register = () => {
         }
     }, [verified]);
 
+    // Timer countdown logic
     useEffect(() => {
         const interval = setInterval(() => {
             setTimeLeft(prev => {
@@ -52,9 +90,16 @@ const Register = () => {
     }, [timerKey]);
 
     useEffect(() => {
-
     }, [username, email, password, password_1]);
 
+    // ------------------ Handlers ------------------
+
+    /**
+     * Handle verification code submission.
+     * - Calls backend to validate code
+     * - On success → mark user verified and navigate to `/chat`
+     * - On failure → reset code field and display error
+     */
     const handleVerificationCode = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
@@ -80,6 +125,10 @@ const Register = () => {
         }
     }
 
+    /**
+     * Resend verification code.
+     * - Only available once timer has expired
+     */
     const rescendCode = async () => {
         setIsLoading(true);
         try {
@@ -94,6 +143,13 @@ const Register = () => {
         }
     }
 
+    /**
+     * Handle registration form submission.
+     * - Validates password match
+     * - Calls backend RegisterUser
+     * - Sets verification state if registration successful
+     * - Displays error if failure
+     */
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
@@ -143,6 +199,9 @@ const Register = () => {
         }
     };
 
+    // ------------------ Conditional Rendering ------------------
+
+    // Step 2: Email verification phase
     if (verified === false || user?.verified === false) {
         return (
             <div className="min-h-screen bg-gray-100 text-gray-800 px-4 py-8">
@@ -205,6 +264,8 @@ const Register = () => {
             </div>
         );
     }
+
+    // Step 1: Registration form
     if (verified === undefined) {
         return (
             <div className="min-h-screen bg-gray-100 text-gray-800 px-4 py-8">

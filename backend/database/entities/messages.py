@@ -1,22 +1,90 @@
 from ..config.connection_engine import declarativeBase
-from sqlalchemy.dialects.mssql import DATETIME
 from sqlalchemy.dialects.postgresql import UUID as pgUUID
-from sqlalchemy import ForeignKey, DateTime, Boolean
-from sqlalchemy import TEXT
-from sqlalchemy.orm import Mapped,mapped_column
+from sqlalchemy import ForeignKey, DateTime, Boolean, TEXT
+from sqlalchemy.orm import Mapped, mapped_column
 from uuid import UUID
 from datetime import datetime, timezone
 
 class UserMessage(declarativeBase):
-    __tablename__ = 'message'
-    id: Mapped[UUID] = mapped_column(pgUUID(as_uuid=True),primary_key = True)
-    conversation_id: Mapped[UUID] = mapped_column(pgUUID(as_uuid=True), ForeignKey('conversation.id'),nullable=False)
-    date_created_on: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now(timezone.utc))
-    message_text: Mapped[str] = mapped_column(TEXT,nullable=False)
-    role:Mapped[str] = mapped_column(TEXT,nullable=False)
-    feedback: Mapped[bool] = mapped_column(Boolean,nullable=True)
+    """
+    ORM model for the `message` table.
+    Represents a single message within a conversation.
 
-    def __init__(self,message_id,conversation_id,message,date_created_on,role,feedback=None):
+    Attributes
+    ----------
+    id : UUID
+        Primary key. Unique identifier for the message.
+    conversation_id : UUID
+        Foreign key reference to the `conversation` table.
+    date_created_on : datetime
+        Timestamp when the message was created.
+    message_text : str
+        Content of the message.
+    role : str
+        Role of the sender (e.g., "user", "assistant", "system").
+    feedback : bool | None
+        Optional feedback flag for the message (True/False). Default is None.
+    """
+
+    __tablename__ = 'message'
+
+    id: Mapped[UUID] = mapped_column(
+        pgUUID(as_uuid=True), primary_key=True
+    )
+    """Primary key. UUID of the message."""
+
+    conversation_id: Mapped[UUID] = mapped_column(
+        pgUUID(as_uuid=True), ForeignKey('conversation.id'), nullable=False
+    )
+    """Foreign key to the conversation this message belongs to."""
+
+    date_created_on: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.now(timezone.utc)
+    )
+    """Timestamp when the message was created. Defaults to current UTC time."""
+
+    message_text: Mapped[str] = mapped_column(
+        TEXT, nullable=False
+    )
+    """Text content of the message (cannot be null)."""
+
+    role: Mapped[str] = mapped_column(
+        TEXT, nullable=False
+    )
+    """Role of the message sender (e.g., user, assistant, system)."""
+
+    feedback: Mapped[bool] = mapped_column(
+        Boolean, nullable=True
+    )
+    """Optional feedback flag (True = positive, False = negative, None = not set)."""
+
+    def __init__(
+        self,
+        message_id: UUID,
+        conversation_id: UUID,
+        message: str,
+        date_created_on,
+        role: str,
+        feedback: bool | None = None,
+    ):
+        """
+        Initialize a new UserMessage object.
+
+        Parameters
+        ----------
+        message_id : UUID
+            Unique identifier of the message.
+        conversation_id : UUID
+            ID of the conversation this message belongs to.
+        message : str
+            The content of the message.
+        date_created_on : datetime | str
+            Timestamp when the message was created. Accepts datetime or ISO8601 string.
+        role : str
+            The role of the sender (user/assistant/system).
+        feedback : bool | None, optional
+            Feedback flag for the message (default is None).
+        """
         self.id = message_id
         self.conversation_id = conversation_id
         self.message_text = message
@@ -27,6 +95,18 @@ class UserMessage(declarativeBase):
         else:
             self.date_created_on = date_created_on
 
-    def __str__(self):
-        return (f"User: id:{self.user_id}, message: {self.message}, time_created: {self.date_created_on}")
+    def __str__(self) -> str:
+        """
+        Return a human-readable string representation of the message.
 
+        Returns
+        -------
+        str
+            A formatted string containing conversation ID, message text, role, and creation timestamp.
+        """
+        return (
+            f"Conversation: id:{self.conversation_id}, "
+            f"role: {self.role}, "
+            f"message: {self.message_text}, "
+            f"time_created: {self.date_created_on}"
+        )

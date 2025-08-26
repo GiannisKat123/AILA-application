@@ -1,26 +1,59 @@
+/**
+ * Login.tsx
+ * -------------------------------
+ * React component that renders the login page.
+ *
+ * Features:
+ * - Username & password input fields
+ * - Calls the AuthContext `loginUser` to authenticate
+ * - Handles both success and error flows:
+ *   - If user is verified → navigate to /chat
+ *   - If user is NOT verified → resend code & redirect to /register
+ *   - If authentication fails → display error message
+ * - Resets username/password fields on error
+ * - Uses TailwindCSS for styling
+ *
+ * Dependencies:
+ * - useAuth (AuthContext)
+ * - react-router-dom (navigation)
+ */
+
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
 
 const Login = () => {
+    // ------------------ State Management ------------------
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const { loginUser, resendCode } = useAuth();
     const [errorMsg, setErrorMessage] = useState("");
     const [isLoading, setIsLoading] = useState(false);
 
+    // ------------------ Refs ------------------
     const userRef = useRef<HTMLInputElement>(null);
     const errRef = useRef<HTMLParagraphElement>(null);
+
     const navigate = useNavigate();
 
+    // ------------------ Effects ------------------
     useEffect(() => {
         userRef.current?.focus();
     }, []);
 
-    // useEffect(() => {
-    //     setErrorMessage("");
-    // }, [username, password]);
+    // ------------------ Handlers ------------------
 
+    /**
+     * Handles login form submission.
+     *
+     * param e React.FormEvent
+     * - Prevents default form submit
+     * - Calls login API
+     * - Handles three cases:
+     *   1. Auth success & verified → navigate to chat
+     *   2. Auth success & unverified → resend code + go to register
+     *   3. Auth failed → show error message
+     */
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
@@ -28,21 +61,25 @@ const Login = () => {
 
         try {
             const res = await loginUser(username, password);
-
+            // Case 1: Success & verified
             if (res && "user_details" in res) {
                 const { verified, email } = res.user_details;
                 if (verified) {
                     navigate("/chat");
                 } else {
+                    // Case 2: Not verified → resend code
                     await resendCode(username, email);
                     navigate("/register");
                 }
+
+                // Case 3: Error returned by API
             } else if (res && "error_message" in res) {
                 setErrorMessage(res.error_message);
                 errRef.current?.focus();
                 setUsername("");
                 setPassword("");
             }
+            // Unknown failure
             else {
                 // Login failed — wrong credentials, user not found, etc.
                 setErrorMessage("Login failed. Something happened");
@@ -61,7 +98,7 @@ const Login = () => {
         }
     };
 
-
+    // ------------------ Render ------------------
     return (
         <div className="min-h-screen bg-gray-100 text-gray-800 px-4 py-8">
             {/* Login Form */}
