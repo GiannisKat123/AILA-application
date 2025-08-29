@@ -30,7 +30,7 @@ The documentation provided in this repository guides users through:
 
 ## Installation
 The software requires **Python 3.11 or higher**.  
-It is recommended to install the application in a dedicated Python virtual environment. In addition, **Docker** must be installed on the system.  
+It is recommended to install the application in a dedicated [Python virtual environment]([https://example.com](https://docs.python.org/3/library/venv.html)). In addition, **[Docker](https://www.docker.com/)** must be installed on the system.  
 
 ### Steps for installation from source
 ```bash
@@ -52,6 +52,10 @@ cd ..
 docker build -t demoapp .
 //click on the link provided
 ```
+
+## Usage
+For more information about the functionalities of the software in the backend and frontend components, you can visit the docs here
+
 ## Acknowledgements
 AILA stands for "Artificial Intelligence-driven Framework and Legal Advice Tools for Phishing Prevention and Mitigation in Information Systems", which is a research project financially supported by the Hellenic Foundation for Research and Innovation (H.F.R.I).
 
