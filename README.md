@@ -36,21 +36,40 @@ It is recommended to install the application in a dedicated [Python virtual envi
 ```bash
 # Clone the repository
 git clone https://github.com/GiannisKat123/AILA-application
+
+
 cd AILA-application
 
+```
+Make sure you have also the suitable environment variables. You can find those in the settings file [here](https://github.com/GiannisKat123/AILA-application/blob/main/backend/database/config/config.py)
+
+```bash
 # Backend setup
 cd backend
 pip install -r requirements.txt
 cd ..
 
+uvicorn backend.main:app --reload --host 0.0.0.0 --port 8080
+```
+
+In a second terminal on the same path as the repository
+
+```bash
+
 # Frontend setup
 cd frontend
 npm install
-cd ..
-
+npm run dev
+//click on the link provided
+```
 // To run the application locally on you environment
 docker build -t demoapp .
 //click on the link provided
+
+OR
+With one line using the Dockerfile provided in repository by running
+```bash
+docker build -t demoapp .
 ```
 
 ## Usage
