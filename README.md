@@ -55,16 +55,12 @@ uvicorn backend.main:app --reload --host 0.0.0.0 --port 8080
 In a second terminal on the same path as the repository
 
 ```bash
-
 # Frontend setup
 cd frontend
 npm install
 npm run dev
 //click on the link provided
 ```
-// To run the application locally on you environment
-docker build -t demoapp .
-//click on the link provided
 
 OR
 With one line using the Dockerfile provided in repository by running
