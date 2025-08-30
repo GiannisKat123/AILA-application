@@ -36,12 +36,34 @@ It is recommended to install the application in a dedicated [Python virtual envi
 ```bash
 # Clone the repository
 git clone https://github.com/GiannisKat123/AILA-application
-
+python backend/.py
 
 cd AILA-application
 
 ```
 Make sure you have also the suitable environment variables. You can find those in the settings file [here](https://github.com/GiannisKat123/AILA-application/blob/main/backend/database/config/config.py)
+
+```bash
+# Cache embedding and reranker models
+python backend/cache_models.py
+```
+
+Suppose we want to run the software locally in the port 8080. You have to change base url in the frontend/api/axios.tsx to **'http://localhost:8080'**.
+
+Then you can do two things:
+
+Either:
+
+First change some configurations in the .env file:
+
+```bash
+# Environment variables
+INIT_MODE = 'runtime'
+VITE_API_URL="http://localhost:5173"
+FRONTEND_URL="http://localhost:5173"
+
+## port 5173 is the default port when launching a typescript project on dev mode
+```
 
 ```bash
 # Backend setup
@@ -59,13 +81,21 @@ In a second terminal on the same path as the repository
 cd frontend
 npm install
 npm run dev
-//click on the link provided
+
+click on the link provided
 ```
 
-OR
-With one line using the Dockerfile provided in repository by running
+OR 
+
+With two lines using the Dockerfile provided in repository by running
 ```bash
-docker build -t demoapp .
+1) docker build -t demoapp .
+2) docker run -it --rm `    
+>>   -p 8080:8080 `
+>>   -e INIT_MODE=runtime `
+>>   -v "${PWD}\backend\cached_embedding_models:/app/backend/cached_embedding_models" `
+>>   -v "${PWD}\backend\cached_reranker_models:/app/backend/cached_reranker_models" `
+>>   --name aila-app demoapp
 ```
 
 ## Usage
