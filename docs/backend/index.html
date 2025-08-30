@@ -3,12 +3,12 @@
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="backend" href="backend/index.html" /><link rel="prev" title="AILA-Application Documentation v0.1" href="../index.html" />
+<link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="&lt;no title&gt;" href="backend/index.html" /><link rel="prev" title="AILA-Application Documentation v0.1" href="../index.html" />
         <link rel="prefetch" href="../_static/logo.png" as="image" />
         <link rel="prefetch" href="../_static/logo-dark.png" as="image" />
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.07.19 -->
-        <title>API Reference - AILA-Application</title>
+        <title>Backend (FastAPI) Documentation - AILA-Application</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=25af2a20" />
     <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=4ae1632d" />
@@ -183,7 +183,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <div class="visually-hidden">Toggle table of contents sidebar</div>
         <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
       </label>
@@ -207,54 +207,51 @@
 </form>
 <div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
   <ul class="current">
-<li class="toctree-l1 current has-children current-page"><a class="current reference internal" href="#">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of API Reference</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l2 has-children"><a class="reference internal" href="backend/index.html">backend</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of backend</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l3 has-children"><a class="reference internal" href="backend/api/index.html">backend.api</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of backend.api</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l4"><a class="reference internal" href="backend/api/fast_api/index.html">backend.api.fast_api</a></li>
-<li class="toctree-l4"><a class="reference internal" href="backend/api/llm_pipeline/index.html">backend.api.llm_pipeline</a></li>
-<li class="toctree-l4"><a class="reference internal" href="backend/api/models/index.html">backend.api.models</a></li>
-<li class="toctree-l4"><a class="reference internal" href="backend/api/utils/index.html">backend.api.utils</a></li>
+<li class="toctree-l1 current has-children current-page"><a class="current reference internal" href="#">Backend (FastAPI) Documentation</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><div class="visually-hidden">Toggle navigation of Backend (FastAPI) Documentation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="backend/api/index.html">backend.api</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><div class="visually-hidden">Toggle navigation of backend.api</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="backend/api/fast_api/index.html">backend.api.fast_api</a></li>
+<li class="toctree-l3"><a class="reference internal" href="backend/api/llm_pipeline/index.html">backend.api.llm_pipeline</a></li>
+<li class="toctree-l3"><a class="reference internal" href="backend/api/models/index.html">backend.api.models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="backend/api/utils/index.html">backend.api.utils</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="backend/cache_models/index.html">backend.cache_models</a></li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="backend/crypt/index.html">backend.crypt</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of backend.crypt</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l4"><a class="reference internal" href="backend/crypt/encrypt_decrypt/index.html">backend.crypt.encrypt_decrypt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="backend/main/index.html">backend.main</a></li>
+<li class="toctree-l2"><a class="reference internal" href="backend/cache_models/index.html">backend.cache_models</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="backend/crypt/index.html">backend.crypt</a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><div class="visually-hidden">Toggle navigation of backend.crypt</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="backend/crypt/encrypt_decrypt/index.html">backend.crypt.encrypt_decrypt</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="backend/database/index.html">backend.database</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle navigation of backend.database</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l4 has-children"><a class="reference internal" href="backend/database/config/index.html">backend.database.config</a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle navigation of backend.database.config</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l5"><a class="reference internal" href="backend/database/config/config/index.html">backend.database.config.config</a></li>
-<li class="toctree-l5"><a class="reference internal" href="backend/database/config/connection_engine/index.html">backend.database.config.connection_engine</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="backend/database/index.html">backend.database</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><div class="visually-hidden">Toggle navigation of backend.database</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="backend/database/config/index.html">backend.database.config</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><div class="visually-hidden">Toggle navigation of backend.database.config</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="backend/database/config/config/index.html">backend.database.config.config</a></li>
+<li class="toctree-l4"><a class="reference internal" href="backend/database/config/connection_engine/index.html">backend.database.config.connection_engine</a></li>
 </ul>
 </li>
-<li class="toctree-l4 has-children"><a class="reference internal" href="backend/database/core/index.html">backend.database.core</a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><div class="visually-hidden">Toggle navigation of backend.database.core</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l5"><a class="reference internal" href="backend/database/core/funcs/index.html">backend.database.core.funcs</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="backend/database/core/index.html">backend.database.core</a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><div class="visually-hidden">Toggle navigation of backend.database.core</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="backend/database/core/funcs/index.html">backend.database.core.funcs</a></li>
 </ul>
 </li>
-<li class="toctree-l4 has-children"><a class="reference internal" href="backend/database/daos/index.html">backend.database.daos</a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><div class="visually-hidden">Toggle navigation of backend.database.daos</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l5"><a class="reference internal" href="backend/database/daos/conversation_dao/index.html">backend.database.daos.conversation_dao</a></li>
-<li class="toctree-l5"><a class="reference internal" href="backend/database/daos/user_dao/index.html">backend.database.daos.user_dao</a></li>
-<li class="toctree-l5"><a class="reference internal" href="backend/database/daos/user_message_dao/index.html">backend.database.daos.user_message_dao</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="backend/database/daos/index.html">backend.database.daos</a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><div class="visually-hidden">Toggle navigation of backend.database.daos</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="backend/database/daos/conversation_dao/index.html">backend.database.daos.conversation_dao</a></li>
+<li class="toctree-l4"><a class="reference internal" href="backend/database/daos/user_dao/index.html">backend.database.daos.user_dao</a></li>
+<li class="toctree-l4"><a class="reference internal" href="backend/database/daos/user_message_dao/index.html">backend.database.daos.user_message_dao</a></li>
 </ul>
 </li>
-<li class="toctree-l4 has-children"><a class="reference internal" href="backend/database/entities/index.html">backend.database.entities</a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle navigation of backend.database.entities</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l5"><a class="reference internal" href="backend/database/entities/conversations/index.html">backend.database.entities.conversations</a></li>
-<li class="toctree-l5"><a class="reference internal" href="backend/database/entities/messages/index.html">backend.database.entities.messages</a></li>
-<li class="toctree-l5"><a class="reference internal" href="backend/database/entities/user/index.html">backend.database.entities.user</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="backend/database/entities/index.html">backend.database.entities</a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><div class="visually-hidden">Toggle navigation of backend.database.entities</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="backend/database/entities/conversations/index.html">backend.database.entities.conversations</a></li>
+<li class="toctree-l4"><a class="reference internal" href="backend/database/entities/messages/index.html">backend.database.entities.messages</a></li>
+<li class="toctree-l4"><a class="reference internal" href="backend/database/entities/user/index.html">backend.database.entities.user</a></li>
 </ul>
 </li>
-<li class="toctree-l4 has-children"><a class="reference internal" href="backend/database/helpers/index.html">backend.database.helpers</a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle navigation of backend.database.helpers</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l5"><a class="reference internal" href="backend/database/helpers/transactionManagement/index.html">backend.database.helpers.transactionManagement</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="backend/main/index.html">backend.main</a></li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="backend/database/helpers/index.html">backend.database.helpers</a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><div class="visually-hidden">Toggle navigation of backend.database.helpers</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="backend/database/helpers/transactionManagement/index.html">backend.database.helpers.transactionManagement</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../frontend/index.html">Frontend Typescript Documentation</a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><div class="visually-hidden">Toggle navigation of Frontend Typescript Documentation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../frontend/index.html">Frontend Typescript Documentation</a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><div class="visually-hidden">Toggle navigation of Frontend Typescript Documentation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../frontend/api/api/axios/README.html">api/axios</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../frontend/api/App/README.html">App</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../frontend/api/components/Template/README.html">components/Template</a></li>
@@ -301,69 +298,49 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <div class="visually-hidden">Toggle table of contents sidebar</div>
             <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="api-reference">
-<h1>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading">¶</a></h1>
-<p>This page contains auto-generated API reference documentation <a class="footnote-reference brackets" href="#f1" id="id1" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a>.</p>
+          <section id="backend-fastapi-documentation">
+<h1>Backend (FastAPI) Documentation<a class="headerlink" href="#backend-fastapi-documentation" title="Link to this heading">¶</a></h1>
+<p>Welcome to the documentation for the <strong>Backend</strong> of the <em>AILA Chatbot</em>!</p>
+<p>This section provides a complete reference to the backend system, which is built with <strong>FastAPI</strong>.
+It explains the architectural design, core functionality, and the public API surface generated from inline docstrings across the backend modules and packages.</p>
+<p>The backend is responsible for:</p>
+<ul class="simple">
+<li><p>Managing authentication and user sessions</p></li>
+<li><p>Handling real-time WebSocket communication for chat</p></li>
+<li><p>Integrating the Retrieval-Augmented Generation (RAG) pipeline</p></li>
+<li><p>Serving API endpoints to the frontend and external clients</p></li>
+</ul>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading">¶</a></h2>
+<p>High-level notes about the backend go here.
+(You can expand this section with architecture diagrams, flowcharts, or explanations of key modules like <cite>auth</cite>, <cite>chat</cite>, and <cite>retrieval</cite>.)</p>
+</section>
+<section id="api-reference">
+<h2>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading">¶</a></h2>
+<p>The following tree contains the full API reference for the backend package.
+It is auto-generated from the FastAPI codebase using <cite>sphinx-autoapi</cite>.</p>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="backend/index.html">backend</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="backend/api/index.html">backend.api</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="backend/api/fast_api/index.html">backend.api.fast_api</a></li>
-<li class="toctree-l3"><a class="reference internal" href="backend/api/llm_pipeline/index.html">backend.api.llm_pipeline</a></li>
-<li class="toctree-l3"><a class="reference internal" href="backend/api/models/index.html">backend.api.models</a></li>
-<li class="toctree-l3"><a class="reference internal" href="backend/api/utils/index.html">backend.api.utils</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="backend/cache_models/index.html">backend.cache_models</a></li>
-<li class="toctree-l2"><a class="reference internal" href="backend/crypt/index.html">backend.crypt</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="backend/crypt/encrypt_decrypt/index.html">backend.crypt.encrypt_decrypt</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="backend/database/index.html">backend.database</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="backend/database/config/index.html">backend.database.config</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="backend/database/config/config/index.html">backend.database.config.config</a></li>
-<li class="toctree-l4"><a class="reference internal" href="backend/database/config/connection_engine/index.html">backend.database.config.connection_engine</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="backend/database/core/index.html">backend.database.core</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="backend/database/core/funcs/index.html">backend.database.core.funcs</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="backend/database/daos/index.html">backend.database.daos</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="backend/database/daos/conversation_dao/index.html">backend.database.daos.conversation_dao</a></li>
-<li class="toctree-l4"><a class="reference internal" href="backend/database/daos/user_dao/index.html">backend.database.daos.user_dao</a></li>
-<li class="toctree-l4"><a class="reference internal" href="backend/database/daos/user_message_dao/index.html">backend.database.daos.user_message_dao</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="backend/database/entities/index.html">backend.database.entities</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="backend/database/entities/conversations/index.html">backend.database.entities.conversations</a></li>
-<li class="toctree-l4"><a class="reference internal" href="backend/database/entities/messages/index.html">backend.database.entities.messages</a></li>
-<li class="toctree-l4"><a class="reference internal" href="backend/database/entities/user/index.html">backend.database.entities.user</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="backend/database/helpers/index.html">backend.database.helpers</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="backend/database/helpers/transactionManagement/index.html">backend.database.helpers.transactionManagement</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="backend/main/index.html">backend.main</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="backend/api/index.html">backend.api</a></li>
+<li class="toctree-l1"><a class="reference internal" href="backend/main/index.html">backend.main</a></li>
+<li class="toctree-l1"><a class="reference internal" href="backend/cache_models/index.html">backend.cache_models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="backend/crypt/index.html">backend.crypt</a></li>
+<li class="toctree-l1"><a class="reference internal" href="backend/database/index.html">backend.database</a></li>
 </ul>
 </div>
 <aside class="footnote-list brackets">
 <aside class="footnote brackets" id="f1" role="doc-footnote">
-<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id1">1</a><span class="fn-bracket">]</span></span>
-<p>Created with <a class="reference external" href="https://github.com/readthedocs/sphinx-autoapi">sphinx-autoapi</a></p>
+<span class="label"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></span>
+<p>API documentation automatically generated with <a class="reference external" href="https://github.com/readthedocs/sphinx-autoapi">sphinx-autoapi</a>.</p>
 </aside>
 </aside>
+</section>
 </section>
 
         </article>
@@ -376,7 +353,7 @@
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">backend</div>
+                <div class="title">&lt;no title&gt;</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
@@ -409,8 +386,28 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Backend (FastAPI) Documentation</a><ul>
+<li><a class="reference internal" href="#overview">Overview</a></li>
+<li><a class="reference internal" href="#api-reference">API Reference</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
