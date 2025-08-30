@@ -1,26 +1,27 @@
 /**
- ** Template Component
- ** ------------------
- * Displays the header banner for the AILA Chatbot Demo.
- *
- * Features:
- * - A title ("AILA CHATBOT DEMO").
- * - Three logos side by side (AUTH, AILA project, University of Patras).
- * - Responsive layout using Tailwind CSS.
- * - Hover animation (scale effect) on logos.
- *
- * Usage:
- *   import { Template } from './Template';
- *
- *   function App() {
- *     return (
- *       <div>
- *         <Template />
- *        / Other Component/
- *       </div>
- *     );
- *   }
- */
+* @packageDocumentation
+*
+* @remarks
+* The `Template` component renders the **AILA Chatbot** header banner. It displays
+* a title and three logos (AUTH, AILA project, and University of Patras) in a responsive,
+* styled layout.
+*
+* Tailwind CSS powers the layout and hover animations.
+*
+* @example
+* ```tsx
+* import { Template } from './Template';
+*
+* export default function App() {
+*   return (
+*     <div>
+*       <Template />
+*         Insert other components here
+*     </div>
+*   );
+* }
+* ```
+*/
 
 import img1 from '../images/banner-horizontal-default-en.png';
 import img2 from '../images/aila_new.png';

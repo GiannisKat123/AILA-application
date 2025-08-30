@@ -1,4 +1,23 @@
-from ..config.connection_engine import declarativeBase
+"""
+UserMessage ORM Model
+=====================
+
+The ``UserMessage`` ORM model represents a single message record within a
+conversation. Each message is tied to a ``Conversation`` entity via a
+foreign key and may optionally carry user feedback.
+
+Key features
+~~~~~~~~~~~~
+- PostgreSQL-native UUID primary key (``id``)
+- Foreign key reference to ``conversation.id`` (``conversation_id``)
+- Timezone-aware ``date_created_on`` timestamp (UTC)
+- Message text content (``message_text``)
+- Sender role indicator (``role``)
+- Optional feedback flag (``feedback``)
+
+"""
+
+from backend.database.config.connection_engine import declarativeBase
 from sqlalchemy.dialects.postgresql import UUID as pgUUID
 from sqlalchemy import ForeignKey, DateTime, Boolean, TEXT
 from sqlalchemy.orm import Mapped, mapped_column

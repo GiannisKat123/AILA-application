@@ -1,4 +1,21 @@
-from ..config.connection_engine import declarativeBase
+"""
+User ORM Model
+==============
+
+The ``User`` ORM model represents a registered user in the system. It maps to the
+``app_user`` table and contains authentication, verification, and role information.
+
+Key features
+~~~~~~~~~~~~
+- PostgreSQL-native UUID primary key (``id``)
+- Username, password, and session token storage
+- User role management (e.g., ``admin``, ``member``)
+- Email verification with codes and timestamps
+- Verification state tracking
+
+"""
+
+from backend.database.config.connection_engine import declarativeBase
 from sqlalchemy.dialects.postgresql import UUID as pgUUID
 from sqlalchemy import VARCHAR, Boolean, TEXT, DateTime
 from sqlalchemy.orm import Mapped, mapped_column

@@ -1,5 +1,83 @@
+
+"""
+User DAO
+
+Purpose
+-------
+Thin data-access layer for the `User` ORM entity. Provides:
+- Creation with password hashing
+- Lookup by username or email
+- Token retrieval and updates
+- Verification status and verification-code updates
+
+Design
+------
+- The DAO expects an active SQLAlchemy `Session` supplied by the caller.
+- Business logic (validation, authorization, transactions) should live in a
+  higher-level service; the DAO focuses on persistence operations.
+- Passwords are hashed using `EncryptionDec.hash_password(...)` before insert.
+
+Entity (expected columns)
+-------------------------
+- id: uuid / primary key
+- user_name: str (unique)
+- email: str (unique)
+- password: str (hashed)
+- role : str
+- verified: bool
+- verification_code: str | None
+- code_created_on: datetime | None
+- session_id: str | None  (JWT or session token)
+
+Usage
+-----
+.. code-block:: python
+
+    from sqlalchemy.orm import Session
+    from backend.database.connection_engine import connection_engine
+    from backend.database.entities.user import User
+    from backend.database.daos.user_dao import UserDao  # adjust path as needed
+
+    dao = UserDao()
+    with Session(connection_engine) as session:
+        # Create user (password will be hashed)
+        u = User(user_name="roman", email="roman@tribalchief.com", password="Spear#123")
+        dao.createUser(session, u)
+        session.commit()  # caller controls commit here
+
+        # Fetch by username
+        users = dao.fetchUser(session, "roman")     # returns list[User], at most 1 due to limit
+        # Fetch by email
+        users2 = dao.fetchUserByEmail(session, "roman@tribalchief.com")
+
+        # Update verification status
+        dao.updateVerified(session, "roman")
+
+        # Update verification code and timestamp
+        from datetime import datetime, timezone
+        dao.updateVerCode(session, "roman", code="123456", code_created_on=datetime.now(timezone.utc))
+
+        # Update token (e.g., after login)
+        dao.updateToken(session, users[0].id, token="jwt-or-session-token")
+
+Error Handling
+--------------
+- Each method catches generic `Exception`, prints a message, and re-raises.
+  Consider replacing `print(...)` with structured logging (e.g., `logger.exception(...)`).
+- Methods using `.one()` can raise `NoResultFound` or `MultipleResultsFound`.
+  Upstream code should be ready to handle these.
+
+Return Values
+-------------
+- createUser(...) -> bool
+- fetchUser(...) -> list[User] (at most one row due to limit(1))
+- fetchUserByEmail(...) -> list[User] (at most one row due to limit(1))
+- fetchUserToken(...) -> str (intended), but see "Caveats" below
+- updateVerified(...), updateVerCode(...), updateToken(...) -> None (commit inside)
+"""
+
 from sqlalchemy.orm import Session
-from ..entities.user import User
+from backend.database.entities.user import User
 import uuid
 from backend.crypt.encrypt_decrypt import EncryptionDec
 

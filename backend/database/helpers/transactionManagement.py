@@ -1,7 +1,29 @@
+"""
+Database Transaction Management
+===============================
+
+This module provides utilities for managing SQLAlchemy database sessions
+using Python context variables and a decorator-based transaction wrapper.
+
+It allows seamless propagation of a database session across function calls
+without explicitly threading it through arguments. Functions can be safely
+decorated with ``@transactional`` to ensure they run inside a managed
+transactional context.
+
+Key features
+~~~~~~~~~~~~
+- Context variable to store the active session
+- Implicit reuse of existing sessions
+- Automatic commit and rollback handling
+- Clean session closure after execution
+- Decorator pattern for function-level transaction management
+
+"""
+
 from functools import wraps
 from sqlalchemy.orm import sessionmaker
 import contextvars
-from ..config.connection_engine import connection_engine
+from backend.database.config.connection_engine import connection_engine
 
 # --------------------------------------------------------------------
 # Context variable to store the current database session.
@@ -9,6 +31,8 @@ from ..config.connection_engine import connection_engine
 # without explicitly threading it through arguments.
 # --------------------------------------------------------------------
 db_session_context = contextvars.ContextVar("db_session_context", default=None)
+"""Context variable storing the active SQLAlchemy session."""
+
 
 def transactional(func):
     """

@@ -1,4 +1,21 @@
-from ..config.connection_engine import declarativeBase
+"""
+Conversation ORM Model
+=======================
+
+The ``Conversation`` ORM model represents a user-owned conversation record stored
+in the ``conversation`` PostgreSQL table. It is implemented with SQLAlchemy
+2.0-style typing and PostgreSQL UUID columns.
+
+Key features
+~~~~~~~~~~~~
+- PostgreSQL-native UUID primary key (``id``)
+- Human-readable name (``conversation_name``)
+- Foreign key to the owning user (``user_id`` → ``app_user.id``)
+- Timezone-aware ``last_updated`` timestamp (UTC)
+
+"""
+
+from backend.database.config.connection_engine import declarativeBase
 from sqlalchemy.dialects.postgresql import UUID as pgUUID
 from sqlalchemy import Column, ForeignKey, DateTime, TEXT
 from sqlalchemy.orm import Mapped, mapped_column

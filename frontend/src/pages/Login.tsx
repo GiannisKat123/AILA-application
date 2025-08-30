@@ -1,28 +1,73 @@
 /**
- * Login.tsx
- * -------------------------------
- * React component that renders the login page.
- *
- * Features:
- * - Username & password input fields
- * - Calls the AuthContext `loginUser` to authenticate
- * - Handles both success and error flows:
- *   - If user is verified → navigate to /chat
- *   - If user is NOT verified → resend code & redirect to /register
- *   - If authentication fails → display error message
- * - Resets username/password fields on error
- * - Uses TailwindCSS for styling
- *
- * Dependencies:
- * - useAuth (AuthContext)
- * - react-router-dom (navigation)
- */
+* @packageDocumentation
+*
+* @remarks
+* Renders the login page. Authenticates via {@link useAuth}.
+*
+* Features:
+* - Username & password input fields
+* - Calls the AuthContext `loginUser` to authenticate
+* - Handles both success and error flows:
+*   - If user is verified → navigate to /chat
+*   - If user is NOT verified → resend code & redirect to /register
+*   - If authentication fails → display error message
+* - Resets username/password fields on error
+* - Uses TailwindCSS for styling 
+* 
+* Behavior:
+* - Success + verified → redirect `/chat`
+* - Success + unverified → resend code & redirect `/register`
+* - Failure → show error
+*
+* Uses TailwindCSS for styling.
+* 
+* Dependencies:
+* - useAuth (AuthContext)
+* - react-router-dom (navigation)
+*
+* @example
+* ```tsx
+* import Login from './pages/Login';
+* <Route path="/login" element={<Login />} />
+* ```
+*/
 
 import { useState, useRef, useEffect } from "react";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/AuthContext.jsx";
 import { Link, useNavigate } from "react-router-dom";
 
-const Login = () => {
+
+
+/**
+ * Login component — renders the sign-in page.
+ *
+ * @remarks
+ * Provides username/password login with three outcome flows:
+ * 1. **Success & verified** → navigates to `/chat`.
+ * 2. **Success but unverified** → resends verification code, then redirects to `/register`.
+ * 3. **Failure** → shows an error message and resets input fields.
+ *
+ * ## Responsibilities
+ * - Collect username & password from the user.
+ * - Call {@link AuthContextType.loginUser | loginUser} via {@link useAuth}.
+ * - Call {@link AuthContextType.resendCode | resendCode} if the user is unverified.
+ * - Manage local state for inputs, loading, and errors.
+ * - Redirect the user appropriately based on login outcome.
+ *
+ * ## Props
+ * None. This component consumes global state/actions from {@link useAuth}.
+ *
+ * ## Returns
+ * A styled login form wrapped in TailwindCSS classes.
+ *
+ * @example
+ * ```tsx
+ * import { Login } from "./pages/Login";
+ *
+ * <Route path="/login" element={<Login />} />
+ * ```
+ */
+export const Login = () => {
     // ------------------ State Management ------------------
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");

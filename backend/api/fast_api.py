@@ -42,8 +42,8 @@ from fastapi.responses import StreamingResponse, JSONResponse
 from langchain_openai import ChatOpenAI
 from backend.database.config.config import settings
 
-router = APIRouter()
-
+router = APIRouter() 
+"""Creates the FastAPI router in which we define its routes"""
 
 @router.post("/login")
 async def login(data: UserCredentials, response: Response):
@@ -78,7 +78,6 @@ async def login(data: UserCredentials, response: Response):
         return {'user_details':auth['user_details']}
     else:
         raise HTTPException(status_code=401,detail=auth['detail'])     
-
 
 
 @router.post("/register")
@@ -218,7 +217,7 @@ async def get_user_conversations(token: str = Cookie(None), username: str = ""):
     """
     Fetch all conversations for a given user.
 
-    Query Parameters
+    Request Body
     ----------------
     username : str
         The username whose conversations to fetch.
@@ -240,7 +239,7 @@ async def get_messages(token: str = Cookie(None), conversation_id: str = ""):
     """
     Fetch messages for a given conversation.
 
-    Query Parameters
+    Request Body
     ----------------
     conversation_id : str
         ID of the conversation.
@@ -373,8 +372,14 @@ async def chat_endpoint(request_data: Message, request: Request):
                 # OR raise it, if you don't want partial yield
                 raise HTTPException(status_code=500, detail="Internal Server Error during LLM generation.")
             
-            return StreamingResponse(generate(), media_type="text/event-stream")
-    else: return JSONResponse(content={"response": llm_params, "status": 200})
+        return StreamingResponse(generate(), media_type="text/event-stream")
+    elif isinstance(llm_params, str):
+        async def fake_stream():
+            yield f"data: {json.dumps({'response': llm_params, 'status': 200})}\n\n"
+
+        return StreamingResponse(fake_stream(), media_type="text/event-stream")
+    else:
+        raise HTTPException(status_code=500, detail="Unexpected pipeline output.")
         
 @router.post("/logout")
 async def logout(response: Response):

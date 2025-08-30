@@ -1,27 +1,25 @@
 /**
- * App.tsx
- * ============================================================
+ * @packageDocumentation
+ *
  * Top-level React application component.
  *
- * Responsibilities
- * ----------------
+ * ## Responsibilities
  * - Define the application routes using React Router v6.
  * - Protect sensitive routes (like `/chat`) behind authentication.
- * - Render shared layout (the <Template /> banner) across all pages.
+ * - Render shared layout (the `<Template />` banner) across all pages.
  *
- * Routing Table
- * -------------
+ * ## Routing Table
  * - `/login`     → Login page
  * - `/register`  → Registration page (with verification flow)
  * - `/chat`      → Main Chat UI (requires authentication)
  * - `/`          → Redirects to `/chat`
- * - `*`          → Fallback to <Login /> (could be replaced with a 404)
+ * - `*`          → Fallback to {@link Login} (could be replaced with a 404)
  *
- * Components
- * ----------
- * - Template: A static header/banner with project logos.
+ * ## Components
+ * - {@link Template}: A static header/banner with project logos.
  * - PrivateRoute: Higher-order wrapper that guards protected pages.
  */
+
 
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
@@ -32,16 +30,26 @@ import type { JSX } from 'react';
 import { Template } from './components/Template';
 
 /**
- * PrivateRoute
- * ------------------------------------------------------------
- * Wraps around routes that require authentication.
+ * Protects routes that require authentication.
+ *
+ * @remarks
+ * Uses {@link useAuth} to check if a user is logged in and verified.
  *
  * Logic:
- * 1. Waits until the AuthContext finishes loading.
- * 2. If user exists AND user.verified === true → grant access.
- * 3. Otherwise → redirect to `/login`.
+ * 1. Waits for `loading` to finish (verifying session).
+ * 2. Grants access if `user` exists and `user.verified === true`.
+ * 3. Otherwise redirects to `/login`.
  *
- * @param children - The page component to render if access is granted.
+ * @param children - The component tree to render when authenticated.
+ * @returns The wrapped element if access is granted, else a redirect.
+ *
+ * @example
+ * ```tsx
+ * <Route
+ * path='/chat'
+ * element={<PrivateRoute><Chat /></PrivateRoute>}
+ * />
+ * ```
  */
 function PrivateRoute({ children }: { children: JSX.Element }) {
   const { user, loading } = useAuth();
@@ -60,15 +68,30 @@ function PrivateRoute({ children }: { children: JSX.Element }) {
 }
 
 /**
- * App
- * ------------------------------------------------------------
- * Root component that defines routing and layout.
+ * Root React component.
  *
- * - Displays the <Template /> at the top (logo/banner).
- * - Configures routes for login, register, chat, etc.
- * - Ensures chat is protected by authentication.
+ * @remarks
+ * Defines the application’s routes using React Router v6 and renders
+ * the global header banner via {@link Template}.
+ *
+ * **Routing table:**
+ * - `/login` → {@link Login} page
+ * - `/register` → {@link Register} page
+ * - `/chat` → {@link Chat} page (protected)
+ * - `/` → Redirects to `/chat`
+ * - `*` → Fallback to {@link Login} (could be replaced with 404)
+ *
+ * @returns The top-level application component.
+ *
+ * @example
+ * ```tsx
+ * import { createRoot } from 'react-dom/client';
+ * import App from './App';
+ *
+ * createRoot(document.getElementById('root')!).render(<App />);
+ * ```
  */
-function App() {
+export function App() {
   return (
     <div>
       {/* Global banner visible on all routes */}
@@ -85,7 +108,7 @@ function App() {
 
         {/* Redirects & fallbacks */}
         <Route path='/' element={<Navigate to='/chat' />} />
-        <Route path="*" element={<Login />} /> 
+        <Route path="*" element={<Login />} />
         {/* TODO: Replace with a proper 404 Not Found page */}
       </Routes>
     </div>

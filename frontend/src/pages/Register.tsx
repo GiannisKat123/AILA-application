@@ -1,37 +1,80 @@
 /**
- * Register.tsx
- * -------------------------------
- * React component that handles **user registration** and **email verification**.
- *
- * Features:
- * - New user registration with:
- *   - username
- *   - email
- *   - password (double-entry check)
- * - Server-side password policy enforced
- * - Email verification workflow:
- *   - After successful registration, user must verify via 6-digit code sent to email
- *   - Code expires in 120s (timer with resend functionality)
- *   - Resend code button reactivates only after expiration
- * - Graceful error handling and accessibility with `aria-live`
- * - TailwindCSS styled form with clear instructions
- *
- * States:
- * - `verified`:
- *    undefined → user not yet registered
- *    false → registered but awaiting email verification
- *    true → registration + verification completed → redirected to `/chat`
- *
- * Dependencies:
- * - useAuth (AuthContext → RegisterUser, verifyCodeUser, resendCode)
- * - react-router-dom (navigation)
- */
+* @packageDocumentation
+*
+* @remarks
+* React component that handles **user registration** and **email verification**.
+*
+* Features:
+* - New user registration with:
+*   - username
+*   - email
+*   - password (double-entry check)
+* - Server-side password policy enforced
+* - Email verification workflow:
+*   - After successful registration, user must verify via 6-digit code sent to email
+*   - Code expires in 120s (timer with resend functionality)
+*   - Resend code button reactivates only after expiration
+* - Graceful error handling and accessibility with `aria-live`
+* - TailwindCSS styled form with clear instructions
+*
+* States:
+* - `verified`:
+*    undefined → user not yet registered
+*    false → registered but awaiting email verification
+*    true → registration + verification completed → redirected to `/chat`
+*
+* Dependencies:
+* - useAuth (AuthContext → RegisterUser, verifyCodeUser, resendCode)
+* - react-router-dom (navigation)
+*
+* @example
+* ```tsx
+* import Register from './pages/Register';
+* <Route path="/register" element={<Register />} />
+* ```
+*/
 
 import { useState, useRef, useEffect } from "react";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/AuthContext.jsx";
 import { Link, useNavigate } from "react-router-dom";
 
-const Register = () => {
+
+
+/**
+ * Register component — renders the registration & verification flow.
+ *
+ * @remarks
+ * Provides a two-step flow:
+ * 1. **Registration** — collects username, email, and password, validates inputs,
+ *    and calls {@link AuthContextType.registerUser | registerUser}.
+ * 2. **Verification** — prompts for a one-time code sent by email, calls
+ *    {@link AuthContextType.verifyCodeUser | verifyCodeUser}, and allows resending via
+ *    {@link AuthContextType.resendCode | resendCode}.
+ *
+ * ## Responsibilities
+ * - Collect user credentials (username, email, password + confirm).
+ * - Validate password match and enforce backend policy.
+ * - Submit registration request to backend via `registerUser`.
+ * - Transition to verification phase if registration succeeds.
+ * - Display countdown timer and manage resend code functionality.
+ * - On successful verification → navigate to `/chat`.
+ *
+ * ## Props
+ * None. Uses global state/actions via {@link useAuth}.
+ *
+ * ## Returns
+ * A React element that conditionally renders either:
+ * - Registration form (step 1), or
+ * - Email verification form (step 2).
+ *
+ * ## Example
+ * ```tsx
+ * import { Register } from "./pages/Register";
+ *
+ * <Route path="/register" element={<Register />} />
+ * ```
+ */
+export const Register = () => {
     // ------------------ State ------------------
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");

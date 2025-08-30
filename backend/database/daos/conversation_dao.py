@@ -1,5 +1,75 @@
+"""
+Conversation DAO
+
+Purpose
+-------
+Provides a thin data-access layer for the `Conversation` ORM entity:
+- Create conversations
+- Query by user, by name, or both
+- Update `last_updated` and `conversation_name`
+
+Design
+------
+- Requires an active SQLAlchemy `Session` supplied by the caller (no session
+  creation inside the DAO). This keeps transaction boundaries in the service
+  layer where they belong.
+- Uses straightforward ORM queries (`session.query(...).filter(...).all()`).
+- Update operations fetch the target row and mutate attributes, then `commit()`.
+
+Entity
+------
+Conversation (imported from `backend.database.entities.conversations`)
+Expected columns used here:
+- id (UUID/string)
+- user_id (UUID)
+- conversation_name (str)
+- last_updated (timestamp/datetime or str)
+
+Usage
+-----
+.. code-block:: python
+
+    from sqlalchemy.orm import Session
+    from backend.database.connection_engine import connection_engine
+    from backend.database.entities.conversations import Conversation
+    from backend.database.daos.conversation_dao import ConversationDao  # wherever this file lives
+
+    dao = ConversationDao()
+    with Session(connection_engine) as session:
+        # Create
+        conv = Conversation(
+            id=..., user_id=..., conversation_name="My Case", last_updated="2025-08-27T12:00:00Z"
+        )
+        dao.createConversation(session, conv)
+        session.commit()  # Commit is the caller's responsibility after create
+
+        # Read by user
+        items = dao.fetchConversationByUserId(session, user_id=conv.user_id)
+
+        # Read by name (global)
+        items_by_name = dao.fetchConversationByConverastionName(session, "My Case")
+
+        # Read by user + name
+        items_by_user_and_name = dao.fetchConversationByUserIdAndConverastionName(
+            session, conv.user_id, "My Case"
+        )
+
+        # Update timestamp
+        dao.updateConversationByDate(session, conversation_id=str(conv.id), timestamp="2025-08-27T12:30:00Z")
+
+        # Update name
+        dao.updateConversationByName(session, conversation_id=str(conv.id), conversation_name="Renamed Case")
+
+Error Handling
+--------------
+- Methods catch generic `Exception`, log/print the error message, and re-raise.
+- `update*` methods use `.one()`, which raises `NoResultFound` or `MultipleResultsFound`
+  if the target row count is not exactly one. Callers should be ready to handle these.
+
+"""
+
 from sqlalchemy.orm import Session
-from ..entities.conversations import Conversation
+from backend.database.entities.conversations import Conversation
 from uuid import UUID
 from sqlalchemy import desc
 

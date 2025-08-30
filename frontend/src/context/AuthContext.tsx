@@ -1,9 +1,7 @@
-
 /**
- * ============================================================
- * AuthContext & AuthProvider
- * ============================================================
- * Provides global authentication and user data management across the React app.
+ * @packageDocumentation
+ *
+ *  Provides global authentication and user data management across the React app.
  *
  * Core Responsibilities:
  * ----------------------
@@ -32,14 +30,19 @@
  * Wrap your app in the `AuthProvider` so child components can
  * consume authentication context via `useAuth()`.
  *
- * Example:
- *   <AuthProvider>
- *     <App />
- *   </AuthProvider>
- *
- *   const { user, loginUser, logoutUser } = useAuth();
- */
-
+* 
+* @remarks
+* Provides global authentication and user data management across the React app.
+*
+* @example
+* ```tsx
+*   <AuthProvider>
+*     <App />
+*   </AuthProvider>
+*
+*   const { user, loginUser, logoutUser } = useAuth();
+* ```
+*/
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import {
@@ -55,47 +58,77 @@ import {
     createConversationAPI,
     createMessageAPI,
     getConversationsAPI,
-} from '../services/AuthService';
+} from '../services/AuthService.jsx';
 import type {
     LoginAPIOutput,
     UserProfile,
     Message,
     Conversations,
     ErrorMessage,
-} from '../models/Types';
+} from '../models/Types.jsx';
 
 
 /**
  * Shape of the AuthContext — defines all state + actions
+ * 
  */
-interface AuthContextType {
+export interface AuthContextType {
+    /** Current logged-in user, or `null` if unauthenticated. */
     user: UserProfile | null;
+    /** Messages in the active conversation. */
     userMessages: Message[] | null;
+    /** List of all conversations for the user. */
     conversations: Conversations[] | null;
+    /** Loading state while verifying session. */
     loading: boolean;
+    /** Create a new conversation. */
     createConversation: (conversation_name: string, username: string) => Promise<Conversations | undefined>;
+    /** Create a new message in a conversation. */
     createMessage: (conversation_id: string, text: string, role: string, id: string, feedback: boolean | null) => Promise<void>;
+    /** Fetch all messages for a conversation. */
     fetchUserMessages: (conversation_id: string) => Promise<void>;
-    loginUser: (username: string, password: string) => Promise<LoginAPIOutput | ErrorMessage> | null;
+    /** Login a user. */
+    loginUser(username: string, password: string): Promise<LoginAPIOutput | ErrorMessage | null>;
+    /** Logout the current user. */
     logoutUser: () => Promise<void>;
+    /** Fetch all conversations for the user. */
     fetchConversations: (username: string) => Promise<void>;
+    /** Register a new user. */
     RegisterUser: (username: string, password: string, email: string) => Promise<boolean | ErrorMessage>;
+    /** Verify a user with a code. */
     verifyCodeUser: (username: string, code: string) => Promise<boolean | ErrorMessage>;
+    /** Resend a verification code. */
     resendCode: (username: string, email: string) => Promise<void>;
+    /** Submit feedback on a message. */
     userFeedback: (message_id: string, conversation_id: string, feedback: boolean) => Promise<void>;
+    /** Rename a conversation. */
     renameConversation: (conversation_name: string, conversation_id: string) => Promise<void | ErrorMessage>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 /**
- * AuthProvider
- * ------------
- * Wraps the app and provides:
- * - Authentication state
- * - Conversations state
- * - Messages state
- * - Functions to interact with backend Auth API
+ * Provides the authentication context and state to all child components.
+ *
+ * @remarks
+ * - Should wrap your entire application (usually in `main.tsx` or `index.tsx`).
+ * - Exposes authentication and conversation state/actions via {@link useAuth}.
+ *
+ * @param children - React component tree to be wrapped by the provider.
+ * @returns A React context provider that supplies {@link AuthContextType} to its children.
+ *
+ * @example
+ * ```tsx
+ * import { AuthProvider } from "./context/AuthContext";
+ *
+ * const root = createRoot(document.getElementById("root")!);
+ * root.render(
+ *   <AuthProvider>
+ *     <App />
+ *   </AuthProvider>
+ * );
+ * ```
  */
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<UserProfile | null>(null);
@@ -406,12 +439,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 }
 
 /**
- * useAuth Hook
- * ------------
- * returns AuthContextType
- * - Provides access to user state and auth functions
- * - Must be used within an <AuthProvider>
- */
+* Hook to access {@link AuthContextType}.
+*
+* @remarks
+* Must be used within an {@link AuthProvider}. Throws an error otherwise.
+*
+* @returns The current authentication context.
+*
+* @example
+* ```tsx
+* const { user, loginUser, logoutUser } = useAuth();
+* ```
+*/
 export const useAuth = (): AuthContextType => {
     const context = useContext(AuthContext);
     if (context === undefined) {

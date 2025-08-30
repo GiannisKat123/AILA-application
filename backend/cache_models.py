@@ -36,16 +36,20 @@ EMBEDDING_MODELS = [
     "IoannisKat1/bge-m3-legal-matryoshka",
     "IoannisKat1/legal-bert-base-uncased-legal-matryoshka",
 ]
+"""List of embedding models to download"""
+
 
 # List of CrossEncoder reranker model IDs to cache.
 RERANKER_MODELS = [
     "BAAI/bge-reranker-base",
 ]
+"""List of reranker models to download"""
 
 # Base output directories for cached models.
 EMBEDDINGS_DIR = Path("./backend/cached_embedding_models")
+"""Directory in which the embedding models will be cached for future use."""
 RERANKERS_DIR = Path("./backend/cached_reranker_models")
-
+"""Directory in which the reranker models will be cached for future use."""
 
 def sanitize_model_id(model_id: str) -> str:
     """
@@ -83,7 +87,7 @@ def cache_sentence_transformers(
         Whether to trust and execute custom modeling code from the repository.
         Default is True. Use with caution for untrusted sources.
 
-    Side Effects
+    Notes
     ------------
     - Creates directories under `output_dir`.
     - Writes model weights/configuration to disk.
@@ -108,7 +112,7 @@ def cache_cross_encoders(model_ids: Iterable[str], output_dir: Path) -> None:
     output_dir : Path
         Directory where reranker models will be saved.
 
-    Side Effects
+    Notes
     ------------
     - Creates directories under `output_dir`.
     - Writes model weights/configuration to disk.

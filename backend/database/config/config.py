@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     """Duration (in minutes) before access tokens expire."""
 
     API_KEY: str
-    """Generic API key for application-level integrations."""
+    """OPEN API key for application-level integrations."""
 
     SECRET_KEY: str
     """Secret key used for signing tokens and securing sensitive operations."""
@@ -65,11 +65,11 @@ class Settings(BaseSettings):
 
     class Config:
         """
-        Configuration for Pydantic settings.
-        Loads values from `.env` file by default.
+        Configuration for Pydantic settings. Loads values from `.env` file by default.
         """
         env_file = ".env"
 
 
 # Singleton instance of Settings, ready to be imported across the app
 settings = Settings()
+"""Defines a Settings object that contains the contents of the .env file"""

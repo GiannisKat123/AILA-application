@@ -1,27 +1,25 @@
 /**
- * ============================================================
- * Type Definitions – Core Data Models
- * ============================================================
+* @packageDocumentation
+*
+* @remarks
  * These types define the data contracts used across the frontend.
  * They ensure strong typing when interacting with the backend API.
- *
+*
  * Each type corresponds to a resource or response structure
  * exchanged between frontend and backend.
- */
+*/
 
 /**
- * UserProfile
- * -----------
  * Represents a registered user in the system.
  *
- * Fields:
- * - username: string → unique identifier chosen by the user.
- * - email: string → user’s email address (must be unique).
- * - verified: boolean | null → whether the email is verified.
- *   - true → user’s email is verified
- *   - false → verification pending or failed
- *   - null → verification status unknown (e.g., session expired or incomplete)
- */
+*
+* @property username - Unique identifier chosen by the user.
+* @property email - User’s email address (must be unique).
+* @property verified - Whether the email is verified.
+* - `true` → user’s email is verified
+* - `false` → verification pending or failed
+* - `null` → verification status unknown (e.g., session expired)
+*/
 export type UserProfile = {
   username: string;
   email: string;
@@ -29,20 +27,17 @@ export type UserProfile = {
 };
 
 /**
- * Message
- * -------
- * Represents a chat message inside a conversation.
- *
- * Fields:
- * - feedback: boolean | null → user’s feedback on assistant’s reply.
- *   - true → positive feedback
- *   - false → negative feedback
- *   - null → no feedback given
- * - id: string → unique identifier (UUID).
- * - message: string → message text.
- * - timestamp: string → ISO-8601 formatted timestamp.
- * - role: string → sender role ("user" | "assistant").
- */
+* Represents a chat message inside a conversation.
+*
+* @property feedback - User’s feedback on assistant’s reply.
+* - `true` → positive feedback
+* - `false` → negative feedback
+* - `null` → no feedback given
+* @property id - Unique identifier (UUID).
+* @property message - Message text.
+* @property timestamp - ISO-8601 formatted timestamp.
+* @property role - Sender role ("user" | "assistant").
+*/
 export type Message = {
   feedback: boolean | null;
   id: string;
@@ -52,39 +47,30 @@ export type Message = {
 };
 
 /**
- * LoginAPIOutput
- * --------------
- * Returned by the login API when authentication succeeds.
- *
- * Fields:
- * - user_details: UserProfile → the authenticated user’s profile info.
- */
+* Returned by the login API when authentication succeeds.
+*
+* @property user_details - The authenticated user’s profile info.
+*/
 export type LoginAPIOutput = {
   user_details: UserProfile;
 };
 
 /**
- * Conversations
- * -------------
- * Represents a conversation/chat thread.
- *
- * Fields:
- * - conversation_name: string → display name/title of the conversation.
- * - conversation_id: string → unique identifier (UUID).
- */
+* Represents a conversation/chat thread.
+*
+* @property conversation_name - Display name/title of the conversation.
+* @property conversation_id - Unique identifier (UUID).
+*/
 export type Conversations = {
   conversation_name: string;
   conversation_id: string;
 };
 
 /**
- * ErrorMessage
- * ------------
- * Represents an error object returned by API calls.
- *
- * Fields:
- * - error_message: string → descriptive error message from backend.
- */
+* Represents an error object returned by API calls.
+*
+* @property error_message - Descriptive error message from backend.
+*/
 export type ErrorMessage = {
   error_message: string;
 };

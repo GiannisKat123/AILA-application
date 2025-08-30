@@ -1,44 +1,80 @@
 /**
- * Chat.tsx
- * ============================
- * The main chat UI for AILA. Handles:
- * - Conversation list (create, select, inline rename)
- * - Streaming chat with the backend (/request SSE-like stream)
- * - Persisting both user & assistant messages via AuthContext APIs
- * - Per-message feedback (👍/👎) on assistant replies
- * - Responsive sidebar with mobile overlay
- *
- * Data flow (high level)
- * ----------------------
- * 1) On mount/when `user` changes → fetch user's conversations.
- * 2) When conversations arrive → auto-select the first conversation & load messages.
- * 3) Local `messages` state mirrors `userMessages` from context for live updates during streaming.
- * 4) On submit:
- *    - Optimistically append a user message and an empty assistant message.
- *    - Stream tokens from `/request` and patch the last (assistant) message as chunks arrive.
- *    - On finish, persist both messages to backend and refresh the conversation messages.
- *
- * Accessibility
- * -------------
- * - Uses semantic buttons & aria-friendly state updates.
- *
- * Styling
- * -------
- * - TailwindCSS for layout & theming.
- * - lucide-react icons (User, Bot, Menu, X).
- * - Framer Motion for subtle entrance animation on greeting.
- */
+* @packageDocumentation
+*
+* @remarks
+* The main chat UI for **AILA**. Provides:
+* - Conversation list (create, select, inline rename)
+* - Streaming chat with backend (`/request` endpoint)
+* - Persistence via {@link AuthContextType}
+* - Per‑message feedback (👍/👎)
+* - Responsive sidebar (mobile overlay)
+*
+* **Data Flow**
+* 1. On mount → fetch user’s conversations.
+* 2. Auto‑select first conversation & fetch messages.
+* 3. Local `messages` mirror context `userMessages` for real‑time patching.
+* 4. On submit:
+* - Append user + placeholder assistant messages.
+* - Stream tokens and patch assistant message.
+* - Persist messages and refresh conversation.
+*
+* Accessibility
+* -------------
+* - Uses semantic buttons & aria-friendly state updates.
+*
+* Styling
+* -------
+* - TailwindCSS for layout & theming.
+* - lucide-react icons (User, Bot, Menu, X).
+* - Framer Motion for subtle entrance animation on greeting.
+* 
+* @example
+* ```tsx
+* import Chat from './pages/Chat';
+* <Route path="/chat" element={<Chat />} />
+* ```
+*/
 
 import { useEffect, useRef, useState } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext.jsx';
 import { v4 as uuidv4 } from 'uuid';
 import { useNavigate } from 'react-router-dom';
-import api from '../api/axios';
-import type { Message, Conversations } from '../models/Types';
+import api from '../api/axios.jsx';
+import type { Message, Conversations } from '../models/Types.jsx';
 import { Menu, X, User, Bot } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const Chat = () => {
+
+
+/**
+ * Chat component — renders the main conversation interface.
+ *
+ * @remarks
+ * This component is the core chat UI for AILA. It manages conversation state,
+ * message streaming, feedback, and user interactions.
+ *
+ * ## Responsibilities
+ * - Display a sidebar of conversations (with create, select, and rename).
+ * - Render the chat viewport with user and assistant messages.
+ * - Stream assistant responses from the backend in real time.
+ * - Capture 👍 / 👎 feedback on assistant messages.
+ * - Manage authentication lifecycle actions (logout).
+ * - Provide mobile-friendly sidebar toggle and responsive layout.
+ *
+ * ## Props
+ * None. This component consumes global state from {@link useAuth}.
+ *
+ * ## Returns
+ * A React element representing the chat UI with sidebar + main conversation area.
+ *
+ * @example
+ * ```tsx
+ * import { Chat } from "./pages/Chat";
+ *
+ * <Route path="/chat" element={<Chat />} />
+ * ```
+ */
+export const Chat = () => {
     // -------------------------
     // Local state
     // -------------------------
@@ -76,10 +112,6 @@ const Chat = () => {
     const navigate = useNavigate();
     const chatRef = useRef<HTMLDivElement | null>(null);
 
-    // -------------------------
-    // Effects
-    // -------------------------
-
     /**
      * When user becomes available, fetch user conversations.
      */
@@ -102,8 +134,10 @@ const Chat = () => {
     useEffect(() => {
         if (conversations?.length) {
             const initial = conversations[0];
-            setCurrentConversation(initial);
-            fetchUserMessages(initial.conversation_id);
+            if (initial) {
+                setCurrentConversation(initial);
+                fetchUserMessages(initial.conversation_id);
+            }
         }
     }, [conversations]);
 
@@ -190,8 +224,10 @@ const Chat = () => {
                         setMessages(prev => {
                             const updated = [...prev];
                             const lastIndex = updated.length - 1;
-                            updated[lastIndex].message = fullBotResponse;
-                            updated[lastIndex].timestamp = new Date().toISOString();
+                            if (updated[lastIndex]) {
+                                updated[lastIndex].message = fullBotResponse;
+                                updated[lastIndex].timestamp = new Date().toISOString();
+                            }
                             return updated;
                         });
                     } catch (err) {
@@ -201,10 +237,14 @@ const Chat = () => {
 
                 if (done) {
                     // Persist messages after stream completes
-                    await createMessage(currentConversation.conversation_id, userMessage, 'user', newMessages[0].id, newMessages[0].feedback);
-                    await createMessage(currentConversation.conversation_id, fullBotResponse, 'assistant', newMessages[1].id, newMessages[1].feedback);
-                    // Refresh from backend (for canonical ordering/metadata)
-                    await fetchUserMessages(currentConversation.conversation_id);
+                    if (currentConversation && currentConversation.conversation_id) {
+                        if (newMessages[0] && newMessages[1]) {
+                            await createMessage(currentConversation.conversation_id, userMessage, 'user', newMessages[0].id, newMessages[0].feedback);
+                            await createMessage(currentConversation.conversation_id, fullBotResponse, 'assistant', newMessages[1].id, newMessages[1].feedback);
+                        }
+                        // Refresh from backend (for canonical ordering/metadata)
+                        await fetchUserMessages(currentConversation.conversation_id);
+                    }
                     break;
                 }
             }
@@ -244,9 +284,15 @@ const Chat = () => {
 
         // Optimistically update local conversation list label
         if (conversations) {
-            for (let i = 0; i < (conversations?.length ?? 0); i++) {
-                if (conversations[i] !== null && conversations[i].conversation_id === conversationId) {
-                    conversations[i].conversation_name = editedTitle.trim();
+            for (let i = 0; i < conversations.length; i++) {
+                const conv = conversations[i];
+                if (
+                    conv &&
+                    conv.conversation_id &&
+                    conv.conversation_name &&
+                    conv.conversation_id === conversationId
+                ) {
+                    conv.conversation_name = editedTitle.trim();
                     break;
                 }
             }
@@ -257,8 +303,8 @@ const Chat = () => {
     }
 
     /**
-   * Create a new conversation with a default name.
-   */
+    * Create a new conversation with a default name.
+    */
     const createNewConversation = async () => {
         if (user) {
             const conversation_name = `Conversation ${conversations?.length || 0}`;

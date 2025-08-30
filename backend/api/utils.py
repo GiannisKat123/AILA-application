@@ -4,7 +4,7 @@ JWT utilities for issuing and verifying access tokens.
 Functions
 ---------
 create_access_token(data: dict) -> str
-    Create a signed JWT access token with an expiration (`exp`) claim.
+    Creates a signed JWT access token with an expiration (`exp`) claim.
 verify_token(token: str) -> str | None
     Verify a JWT's signature & expiration and return the subject (`sub`) if valid.
 
@@ -32,8 +32,8 @@ def create_access_token(data: dict) -> str:
     Parameters
     ----------
     data : dict
-        Claims to embed in the token. Include a 'sub' (subject/username/user_id)
-        if you plan to retrieve it in `verify_token`.
+        Claims to embed in the token
+        Retrieves it in `verify_token` function.
 
     Returns
     -------
@@ -41,10 +41,11 @@ def create_access_token(data: dict) -> str:
         Encoded JWT string.
 
     Notes
-    -----
+    ----------
     - Adds an `exp` (expiration) claim calculated from ACCESS_TOKEN_EXPIRE_MINUTES.
-    - Uses `settings.SECRET_KEY` and `settings.ALGORITHM` for signing.
-    - Do not include sensitive secrets (like raw passwords) in `data`.
+    - Uses `settings.SECRET_KEY` and `settings.ALGORITHM` for signing.   
+
+
     """
     expiration_time = settings.ACCESS_TOKEN_EXPIRE_MINUTES
     encoding = data.copy()
@@ -58,21 +59,23 @@ def verify_token(token: str) -> Optional[str]:
     """
     Verify a JWT and return its subject.
 
+
     Parameters
     ----------
     token : str
         Encoded JWT string from the client (e.g., cookie or Authorization header).
 
     Returns
-    -------
+    ----------
     str | None
         The `sub` claim (subject) if the token is valid, otherwise None.
-
-    Behavior
-    --------
+    
+    Notes
+    ----------
     - Decodes and validates the signature and expiration using SECRET_KEY/ALGORITHM.
-    - Returns `payload.get('sub')` for downstream authZ logic.
-    - On any JWTError (invalid signature, expired, malformed), returns None.
+    - Returns `payload.get('sub')` for downstream authentication logic.
+    - On any JWTError (invalid signature, expired, malformed), returns None.    
+
     """
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])

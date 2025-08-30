@@ -78,7 +78,7 @@ class EncryptionDec:
         bool
             True if password is valid, False otherwise.
 
-        Rules
+        Notes
         -----
         - Minimum length: 8 characters
         - Must contain at least:

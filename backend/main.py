@@ -1,14 +1,14 @@
 """
-FastAPI application bootstrap with:
-- Lifespan-managed initialization of the LLM pipeline (indexes + reranker client)
-- CORS configured for the frontend
-- Authenticated WebSocket endpoint (cookie-based token)
-- Static file serving for built frontend
-- Catch-all route to support React Router
+FastAPI application bootstrap with: \n
+- Lifespan-managed initialization of the LLM pipeline (indexes + reranker client) \n
+- CORS configured for the frontend \n
+- Authenticated WebSocket endpoint (cookie-based token) \n
+- Static file serving for built frontend \n
+- Catch-all route to support React Router \n
 
-Environment contract (from `settings`):
-- INIT_MODE: if 'runtime', preload indexes & reranker during app startup.
-- FRONTEND_URL: allowed CORS origin.
+Environment contract (from `settings`): \n
+- INIT_MODE: if 'runtime', preload indexes & reranker during app startup. \n
+- FRONTEND_URL: allowed CORS origin. \n
 """
 
 from fastapi import FastAPI, WebSocket, Cookie, WebSocketDisconnect
@@ -29,7 +29,7 @@ async def lifespan(app: FastAPI):
     """
     App lifespan manager.
 
-    What it does
+    Notes
     ------------
     - On startup (before yielding):
         * If INIT_MODE == 'runtime':
@@ -38,11 +38,6 @@ async def lifespan(app: FastAPI):
             - Construct and initialize `LLM_Pipeline`, attach to `app.state`.
     - On shutdown (after yielding):
         * If a pipeline was created, call `shutdown()` to release resources.
-
-    Notes
-    -----
-    - Uses `app.state.pipeline` for global access.
-    - Prints are retained for simple container logs; consider using `logger`.
     """
     print("⚙️  Loading vector index...")
     pipeline = None
@@ -77,12 +72,24 @@ async def lifespan(app: FastAPI):
 
 # Instantiate the FastAPI app with lifespan handler
 app = FastAPI(lifespan=lifespan)
+"""Instatiates a FastAPI application object
+    The lifespan=lifespan argument registers a custom startup/shutdown lifecycle manager that:\n
+        - On startup: initializes the LLM pipeline (indexes + reranker) if INIT_MODE == 'runtime'.\n
+        - On shutdown: gracefully releases pipeline resources. \n
+"""
+
 logger = logging.getLogger("uvicorn")
+"""Logger instance for capturing and emitting Uvicorn server logs."""
 
 # -----------------------
 # CORS configuration
 # -----------------------
 url = settings.FRONTEND_URL
+"""The allowed frontend origin (URL) used for CORS configuration.
+This value comes from application settings and represents the domain that is permitted to interact with the backend via cross-origin requests.
+"""
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[url],      # Frontend origin

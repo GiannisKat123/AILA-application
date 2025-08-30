@@ -9,7 +9,7 @@ This module provides high-level operations that orchestrate DAO calls and
 auxiliary services (encryption, email).
 """
 
-from ..helpers.transactionManagement import transactional
+from backend.database.helpers.transactionManagement import transactional
 from sqlalchemy.orm import Session
 import uuid
 from backend.database.daos.user_dao import UserDao
@@ -100,10 +100,10 @@ def check_create_user_instance(session: Session, username: str, password: str, e
     Returns
     -------
     dict
-        On success: {'res': True, 'detail': <verification_code>}
-        On failure: {'res': False, 'detail': <reason>}
+        - On success: {'res': True, 'detail': <verification_code>} \n
+        - On failure: {'res': False, 'detail': <reason>} \n
 
-    Behavior
+    Notes
     --------
     - Checks for existing username and email.
     - Validates password via `EncryptionDec.is_valid_password`.
@@ -196,10 +196,10 @@ def check_verification_code(session: Session, username: str, user_code: str):
     Returns
     -------
     dict
-        {'res': True, 'detail': ''} if verified.
-        {'res': False, 'detail': <reason>} if expired or mismatch.
+        - {'res': True, 'detail': ''} if verified. \n
+        - {'res': False, 'detail': <reason>} if expired or mismatch. \n
 
-    Rules
+    Notes
     -----
     - Code expires in 2 minutes from `user.code_created_on`.
     """

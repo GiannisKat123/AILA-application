@@ -1,39 +1,64 @@
 /**
- * Axios API Client
- * ----------------
- * This module configures a reusable Axios instance for making HTTP requests
- * to the backend API. It ensures consistent base URL and credential handling.
- *
- * Usage:
- *   import api from './api';
- *
- *   // Example request
- *   const response = await api.get('/user_conversations');
- *
- * Why centralize Axios config?
- * - Avoids repeating baseURL and headers in every call.
- * - Makes it easier to update backend URLs (production vs. development).
- * - Enables credential sharing (cookies, auth tokens).
- */
+* @packageDocumentation
+*
+* Axios API Client
+* ----------------
+* This module configures a reusable Axios instance for making HTTP requests
+* to the backend API. It ensures consistent base URL and credential handling.
+*
+* Why centralize Axios config?
+* - Avoids repeating baseURL and headers in every call.
+* - Makes it easier to update backend URLs (production vs. development).
+* - Enables credential sharing (cookies, auth tokens).
+* 
+* @remarks
+* Centralized Axios instance for backend API calls. Ensures consistent
+* `baseURL` handling and credential sharing across requests.
+*
+* @example
+* ```ts
+* import api from './api'
+* const res = await api.get('/user_conversations')
+* ```
+*
+* @see {@link createApi | Factory helper} for testing or per‑request overrides.
+*/
+import axios, { type AxiosInstance } from 'axios';
 
-import axios from 'axios';
 
 /**
- * Axios instance preconfigured for backend API calls.
- *
- * Configuration:
- * - baseURL: "/" → proxied by frontend dev server or Nginx in production.
- *   (Can be swapped to "http://localhost:8080" for local development or
- *   "https://ailademo.fly.dev" in deployment.)
- *
- * - withCredentials: true → ensures cookies (e.g., JWT token) are sent
- *   with each request.
+* Axios instance pre-configured for backend API calls.
+* 
+* @remarks
+* Default configuration:
+*  - `baseURL`: `/` (assumes proxy in dev or reverse proxy in prod)
+*  - `withCredentials`: `true` (sends cookies such as JWT)
+*
+* Switch targets by uncommenting the desired `baseURL`.
+*
+* @returns A preconfigured {@link AxiosInstance}.
  */
-const api = axios.create({
-  // baseURL: "https://ailademo.fly.dev", // ✅ Production deployment
-  // baseURL: "http://localhost:8080",    // ✅ Local development
-  baseURL: "/",                            // ✅ Default: relative path (frontend proxy)
-  withCredentials: true,                   // Include cookies for auth
-});
+function createApi(): AxiosInstance {
+  return axios.create({
+    // baseURL: 'https://ailademo.fly.dev', // ✅ Production deployment
+    baseURL: 'http://localhost:8080', // ✅ Local development
+    // baseURL: '/', // ✅ Default: relative path (frontend proxy)
+    withCredentials: true, // Include cookies for auth
+  })
+}
 
+/**
+ * Exported Axios client for general use.
+ *
+ * @see createApi
+ * @example
+ * ```ts
+ * import { api } from './api'
+ * const res = await api.get('/user_conversations')
+ * ```
+ */
+export const api: AxiosInstance = createApi();
 export default api;
+export { createApi };
+export type { AxiosInstance };
+

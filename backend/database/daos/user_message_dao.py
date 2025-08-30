@@ -1,5 +1,70 @@
+"""
+User Messages DAO
+
+Purpose
+-------
+Data-access layer for the `UserMessage` ORM entity. Provides:
+- Message creation
+- Retrieval by conversation (chronological)
+- Feedback updates (thumbs up/down style boolean)
+
+Design
+------
+- Requires an active SQLAlchemy `Session` provided by the caller.
+- Keeps business rules (auth, validation, rate limits) in higher layers.
+- Retrieval uses a subquery for "latest-first then re-order ascending" semantics;
+  see "Performance & Alternatives" for simpler approaches.
+
+Entity (expected columns)
+-------------------------
+UserMessage:
+- id: UUID / primary key
+- conversation_id: UUID (FK to conversations)
+- role: str (e.g., "user", "assistant", "system")
+- message_text: str
+- feedback: bool | None
+- date_created_on: datetime (creation timestamp)
+
+Usage
+-----
+.. code-block:: python
+
+    from sqlalchemy.orm import Session
+    from backend.database.connection_engine import connection_engine
+    from backend.database.entities.messages import UserMessage
+    from backend.database.daos.user_messages_dao import UserMessagesDao
+
+    dao = UserMessagesDao()
+    with Session(connection_engine) as session:
+        # Create a message (caller may choose to commit here or after a batch)
+        msg = UserMessage(
+            id=..., conversation_id=..., role="user", text="Acknowledge the Tribal Chief!",
+        )
+        dao.createMessage(session, msg)
+        session.commit()
+
+        # Fetch messages for a conversation (chronological)
+        messages = dao.fetchMessagesByConversationId(session, conversation_id=msg.conversation_id)
+
+        # Update feedback on a specific message
+        dao.updateMessageFeedback(
+            session,
+            conversation_id=msg.conversation_id,
+            message_id=msg.id,
+            feedback=True,
+        )
+
+Error Handling
+--------------
+- Methods catch generic `Exception`, print a message, and re-raise.
+  Prefer structured logging (e.g., `logger.exception(...)`) over `print(...)`.
+- `updateMessageFeedback` uses `.one()` which raises:
+  - `NoResultFound` if the message doesn’t exist or doesn’t belong to the conversation.
+  - `MultipleResultsFound` if data integrity is violated (should not happen with proper PK/FK).
+"""
+
 from sqlalchemy.orm import Session, aliased
-from ..entities.messages import UserMessage
+from backend.database.entities.messages import UserMessage
 from uuid import UUID
 from sqlalchemy import desc, asc
 
