@@ -48,7 +48,7 @@ Make sure you have also the suitable environment variables. You can find those i
 python backend/cache_models.py
 ```
 
-Suppose we want to run the software locally in the port 8080. You have to change base url in the frontend/api/axios.tsx to **'http://localhost:8080'**.
+Suppose we want to run the software locally in the port 8080. You have to change base url in the frontend/api/axios.tsx to **'http://localhost:8080'**. This is were the backend listens as defined in the files.
 
 Then you can do two things:
 
@@ -97,6 +97,8 @@ With two lines using the Dockerfile provided in repository by running
 >>   -v "${PWD}\backend\cached_reranker_models:/app/backend/cached_reranker_models" `
 >>   --name aila-app demoapp
 ```
+
+In this case make sure that the Frontend and Backend URLs are the same in the environmental variables file. For example: **'http://localhost:8080'**
 
 ## Usage
 For more information about the functionalities of the software in the backend and frontend components, you can visit the docs [here]()
