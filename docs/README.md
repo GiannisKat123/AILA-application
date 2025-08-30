@@ -9,7 +9,7 @@ pip install sphinx
 Then create a docs directory by:
 
 ```bash
-mkdir docs'
+mkdir docs
 cd docs
 ```
 
