@@ -1,1 +1,1 @@
-adasdasdasdasdasdasdasdasdasdas
+The documentation is based on Sphinx, the documentation sources are in the source folder. This documentation is automatically built from the source code of the project and deployed to GitHub Pages by GitHub Actions whenever the main branch is pushed to
