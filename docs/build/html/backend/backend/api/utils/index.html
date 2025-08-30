@@ -1,0 +1,214 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="English" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>backend.api.utils &mdash; AILA-Application</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css?v=4ae1632d" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=082ae3e5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="backend.cache_models" href="../../cache_models/index.html" />
+    <link rel="prev" title="backend.api.models" href="../models/index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            AILA-Application
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">backend</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="../../index.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="../index.html">backend.api</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../cache_models/index.html">backend.cache_models</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../crypt/index.html">backend.crypt</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../database/index.html">backend.database</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../main/index.html">backend.main</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../frontend/index.html">Frontend Typescript Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">AILA-Application</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">backend</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">backend.api</a></li>
+      <li class="breadcrumb-item active">backend.api.utils</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/backend/backend/api/utils/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-backend.api.utils">
+<span id="backend-api-utils"></span><h1>backend.api.utils<a class="headerlink" href="#module-backend.api.utils" title="Link to this heading"></a></h1>
+<p>JWT utilities for issuing and verifying access tokens.</p>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>create_access_token(data: dict) -&gt; str</dt><dd><p>Creates a signed JWT access token with an expiration (<cite>exp</cite>) claim.</p>
+</dd>
+<dt>verify_token(token: str) -&gt; str | None</dt><dd><p>Verify a JWT's signature &amp; expiration and return the subject (<cite>sub</cite>) if valid.</p>
+</dd>
+</dl>
+</section>
+<section id="environment-contract-from-settings">
+<h2>Environment contract (from <cite>settings</cite>)<a class="headerlink" href="#environment-contract-from-settings" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>SECRET_KEY<span class="classifier">str</span></dt><dd><p>HMAC signing key for JWTs.</p>
+</dd>
+<dt>ALGORITHM<span class="classifier">str</span></dt><dd><p>JWT signing algorithm (e.g., &quot;HS256&quot;).</p>
+</dd>
+<dt>ACCESS_TOKEN_EXPIRE_MINUTES<span class="classifier">int</span></dt><dd><p>Token lifetime window in minutes.</p>
+</dd>
+</dl>
+</section>
+<section id="id1">
+<h2>Functions<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#backend.api.utils.create_access_token" title="backend.api.utils.create_access_token"><code class="xref py py-obj docutils literal notranslate"><span class="pre">create_access_token</span></code></a>(→ str)</p></td>
+<td><p>Create a signed JWT access token.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#backend.api.utils.verify_token" title="backend.api.utils.verify_token"><code class="xref py py-obj docutils literal notranslate"><span class="pre">verify_token</span></code></a>(→ Optional[str])</p></td>
+<td><p>Verify a JWT and return its subject.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="backend.api.utils.create_access_token">
+<span class="sig-name descname"><span class="pre">create_access_token</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/utils.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.utils.create_access_token" title="Link to this definition"></a></dt>
+<dd><p>Create a signed JWT access token.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> (<em>dict</em>) -- Claims to embed in the token
+Retrieves it in <cite>verify_token</cite> function.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Encoded JWT string.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Adds an <cite>exp</cite> (expiration) claim calculated from ACCESS_TOKEN_EXPIRE_MINUTES.</p></li>
+<li><p>Uses <cite>settings.SECRET_KEY</cite> and <cite>settings.ALGORITHM</cite> for signing.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="backend.api.utils.verify_token">
+<span class="sig-name descname"><span class="pre">verify_token</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">token</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/utils.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.utils.verify_token" title="Link to this definition"></a></dt>
+<dd><p>Verify a JWT and return its subject.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>token</strong> (<em>str</em>) -- Encoded JWT string from the client (e.g., cookie or Authorization header).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The <cite>sub</cite> claim (subject) if the token is valid, otherwise None.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str | None</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Decodes and validates the signature and expiration using SECRET_KEY/ALGORITHM.</p></li>
+<li><p>Returns <cite>payload.get('sub')</cite> for downstream authentication logic.</p></li>
+<li><p>On any JWTError (invalid signature, expired, malformed), returns None.</p></li>
+</ul>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../models/index.html" class="btn btn-neutral float-left" title="backend.api.models" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../cache_models/index.html" class="btn btn-neutral float-right" title="backend.cache_models" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Ioannis Katoikos.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

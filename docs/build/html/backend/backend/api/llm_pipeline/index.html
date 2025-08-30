@@ -1,0 +1,661 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="English" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>backend.api.llm_pipeline &mdash; AILA-Application</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css?v=4ae1632d" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=082ae3e5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="backend.api.models" href="../models/index.html" />
+    <link rel="prev" title="backend.api.fast_api" href="../fast_api/index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            AILA-Application
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">backend</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="../../index.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="../index.html">backend.api</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../cache_models/index.html">backend.cache_models</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../crypt/index.html">backend.crypt</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../database/index.html">backend.database</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../main/index.html">backend.main</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../frontend/index.html">Frontend Typescript Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">AILA-Application</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">backend</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">backend.api</a></li>
+      <li class="breadcrumb-item active">backend.api.llm_pipeline</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/backend/backend/api/llm_pipeline/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-backend.api.llm_pipeline">
+<span id="backend-api-llm-pipeline"></span><h1>backend.api.llm_pipeline<a class="headerlink" href="#module-backend.api.llm_pipeline" title="Link to this heading"></a></h1>
+<p>LLM Pipeline Orchestration</p>
+<p>This module defines:
+- Utilities for loading vector indexes and reranker models
+- A TypedDict AgentState for LangGraph workflows
+- LLM_Pipeline: a LangGraph-based workflow for legal question answering</p>
+<section id="key-components">
+<h2>Key Components<a class="headerlink" href="#key-components" title="Link to this heading"></a></h2>
+<ol class="arabic">
+<li><p>load_vector_index(top_k, persist_dir, embedding)
+-&gt; Loads a LlamaIndex vector index with a given embedding model and returns a retriever.</p></li>
+<li><p>load_reranker_model()
+-&gt; Loads a Cohere client + finetuned reranker model.</p></li>
+<li><p>initialize_indexes(top_k)
+-&gt; Preloads all vector indexes (Phishing, Law Cases Recall/Precision,      Greek Penal Code Recall/Precision, GDPR Recall/Precision).</p></li>
+<li><p>AgentState
+-&gt; TypedDict describing the state used across LangGraph workflow.</p></li>
+<li><p>LLM_Pipeline
+-&gt; Orchestrates the RAG pipeline:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>starting_prompt: safety &amp; relevance check</p></li>
+<li><p>query_translation: ensure English queries for retrieval</p></li>
+<li><p>query_rewriting: generate paraphrases for broader coverage</p></li>
+<li><p>run_classifications_parallel: classify into multiple categories</p></li>
+<li><p>run_retrievals_parallel: retrieve from multiple indexes</p></li>
+<li><p>get_context: summarize retrieved docs</p></li>
+<li><p>web_search: complementary retrieval from TavilySearch</p></li>
+<li><p>run_full_pipeline: executes the full flow end-to-end</p></li>
+</ul>
+</div></blockquote>
+</li>
+</ol>
+</section>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading"></a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#backend.api.llm_pipeline.AgentState" title="backend.api.llm_pipeline.AgentState"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AgentState</span></code></a></p></td>
+<td><p>Shared state for the pipeline's LangGraph workflow.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#backend.api.llm_pipeline.LLM_Pipeline" title="backend.api.llm_pipeline.LLM_Pipeline"><code class="xref py py-obj docutils literal notranslate"><span class="pre">LLM_Pipeline</span></code></a></p></td>
+<td><p>LangGraph-based pipeline for multilingual, legal RAG.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#backend.api.llm_pipeline.load_vector_index" title="backend.api.llm_pipeline.load_vector_index"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_vector_index</span></code></a>(top_k, persist_dir, embedding)</p></td>
+<td><p>Load a LlamaIndex vector index with a specified embedding model.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#backend.api.llm_pipeline.load_reranker_model" title="backend.api.llm_pipeline.load_reranker_model"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_reranker_model</span></code></a>()</p></td>
+<td><p>Load a Cohere client and finetuned reranker model.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#backend.api.llm_pipeline.initialize_indexes" title="backend.api.llm_pipeline.initialize_indexes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">initialize_indexes</span></code></a>(top_k)</p></td>
+<td><p>Initialize and return all domain-specific retrievers.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="backend.api.llm_pipeline.load_vector_index">
+<span class="sig-name descname"><span class="pre">load_vector_index</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">top_k</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">persist_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">embedding</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/llm_pipeline.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.llm_pipeline.load_vector_index" title="Link to this definition"></a></dt>
+<dd><p>Load a LlamaIndex vector index with a specified embedding model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>top_k</strong> (<em>int</em>) -- Max number of docs to retrieve.</p></li>
+<li><p><strong>persist_dir</strong> (<em>str</em>) -- Directory containing the persisted index.</p></li>
+<li><p><strong>embedding</strong> (<em>HuggingFaceEmbeddings</em>) -- Embedding model to use for retrieval.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A retriever configured for hybrid search with similarity top_k.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>VectorIndexRetriever</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="backend.api.llm_pipeline.load_reranker_model">
+<span class="sig-name descname"><span class="pre">load_reranker_model</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/llm_pipeline.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.llm_pipeline.load_reranker_model" title="Link to this definition"></a></dt>
+<dd><p>Load a Cohere client and finetuned reranker model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>(Cohere client, finetuned model reference)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="backend.api.llm_pipeline.initialize_indexes">
+<span class="sig-name descname"><span class="pre">initialize_indexes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">top_k</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/llm_pipeline.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.llm_pipeline.initialize_indexes" title="Link to this definition"></a></dt>
+<dd><p>Initialize and return all domain-specific retrievers.</p>
+<p>Domains:</p>
+<ul class="simple">
+<li><p>Phishing</p></li>
+<li><p>Law Cases (Recall &amp; Precision)</p></li>
+<li><p>Greek Penal Code (Recall &amp; Precision)</p></li>
+<li><p>GDPR (Recall &amp; Precision)</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict[str, VectorIndexRetriever]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="backend.api.llm_pipeline.AgentState">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">AgentState</span></span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/llm_pipeline.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.llm_pipeline.AgentState" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-obj docutils literal notranslate"><span class="pre">TypedDict</span></code></p>
+<p>Shared state for the pipeline's LangGraph workflow.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="backend.api.llm_pipeline.AgentState.user_query">
+<span class="sig-name descname"><span class="pre">user_query</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/llm_pipeline.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.llm_pipeline.AgentState.user_query" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="backend.api.llm_pipeline.AgentState.summarized_context">
+<span class="sig-name descname"><span class="pre">summarized_context</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/llm_pipeline.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.llm_pipeline.AgentState.summarized_context" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="backend.api.llm_pipeline.AgentState.search_results">
+<span class="sig-name descname"><span class="pre">search_results</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/llm_pipeline.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.llm_pipeline.AgentState.search_results" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="backend.api.llm_pipeline.AgentState.questions">
+<span class="sig-name descname"><span class="pre">questions</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/llm_pipeline.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.llm_pipeline.AgentState.questions" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="backend.api.llm_pipeline.AgentState.query_classification">
+<span class="sig-name descname"><span class="pre">query_classification</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">operator.or_</span><span class="p"><span class="pre">]</span></span></em><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/llm_pipeline.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.llm_pipeline.AgentState.query_classification" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="backend.api.llm_pipeline.AgentState.retrieved_docs">
+<span class="sig-name descname"><span class="pre">retrieved_docs</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">operator.or_</span><span class="p"><span class="pre">]</span></span></em><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/llm_pipeline.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.llm_pipeline.AgentState.retrieved_docs" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="backend.api.llm_pipeline.AgentState.context">
+<span class="sig-name descname"><span class="pre">context</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">operator.or_</span><span class="p"><span class="pre">]</span></span></em><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/llm_pipeline.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.llm_pipeline.AgentState.context" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="backend.api.llm_pipeline.LLM_Pipeline">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">LLM_Pipeline</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index_mapping</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reranker_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cohere_client</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/llm_pipeline.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.llm_pipeline.LLM_Pipeline" title="Link to this definition"></a></dt>
+<dd><p>LangGraph-based pipeline for multilingual, legal RAG.</p>
+<section id="steps">
+<h3>Steps<a class="headerlink" href="#steps" title="Link to this heading"></a></h3>
+<ol class="arabic simple">
+<li><p>starting_prompt: check if query is legal, safe, in-domain.</p></li>
+<li><p>query_translation: translate non-English queries to English.</p></li>
+<li><p>query_rewriting: produce paraphrases to improve recall.</p></li>
+<li><p>query_classification: assign categories (GDPR, GPC, Phishing, Cases).</p></li>
+<li><p>retrieving_docs: fetch from indexes, rerank with CrossEncoder or Cohere.</p></li>
+<li><p>get_context: summarize retrieved docs into coherent context.</p></li>
+<li><p>web_search: augment with TavilySearch.</p></li>
+<li><p>run_full_pipeline: execute all steps and return final structured response.</p></li>
+</ol>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="backend.api.llm_pipeline.LLM_Pipeline.index_mapping">
+<span class="sig-name descname"><span class="pre">index_mapping</span></span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/llm_pipeline.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.llm_pipeline.LLM_Pipeline.index_mapping" title="Link to this definition"></a></dt>
+<dd><p>Preloaded retrievers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict[str, VectorIndexRetriever]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="backend.api.llm_pipeline.LLM_Pipeline.reranker_model">
+<span class="sig-name descname"><span class="pre">reranker_model</span></span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/llm_pipeline.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.llm_pipeline.LLM_Pipeline.reranker_model" title="Link to this definition"></a></dt>
+<dd><p>Model used to rerank retrieved documents.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>CrossEncoder | GetFinetunedModelResponse</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="backend.api.llm_pipeline.LLM_Pipeline.cohere_client">
+<span class="sig-name descname"><span class="pre">cohere_client</span></span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/llm_pipeline.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.llm_pipeline.LLM_Pipeline.cohere_client" title="Link to this definition"></a></dt>
+<dd><p>Optional client for Cohere reranking.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>cohere.ClientV2 | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="backend.api.llm_pipeline.LLM_Pipeline.model">
+<span class="sig-name descname"><span class="pre">model</span></span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/llm_pipeline.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.llm_pipeline.LLM_Pipeline.model" title="Link to this definition"></a></dt>
+<dd><p>LLM used for classification, rewriting, summarization.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ChatOpenAI</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="backend.api.llm_pipeline.LLM_Pipeline.dict_lang">
+<span class="sig-name descname"><span class="pre">dict_lang</span></span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/llm_pipeline.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.llm_pipeline.LLM_Pipeline.dict_lang" title="Link to this definition"></a></dt>
+<dd><p>Dictionary of languages to recognize</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="backend.api.llm_pipeline.LLM_Pipeline.app">
+<span class="sig-name descname"><span class="pre">app</span></span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/llm_pipeline.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.llm_pipeline.LLM_Pipeline.app" title="Link to this definition"></a></dt>
+<dd><p>Initializes the workflow of the RAG application</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="backend.api.llm_pipeline.LLM_Pipeline.retrieving_docs">
+<span class="sig-name descname"><span class="pre">retrieving_docs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_mapping</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">llama_index.core.retrievers.VectorIndexRetriever</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indexes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">llama_index.core.retrievers.VectorIndexRetriever</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reranker_model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">sentence_transformers.CrossEncoder</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">cohere.finetuning.finetuning.types.get_finetuned_model_response.GetFinetunedModelResponse</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cohere_client</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">cohere.client_v2.ClientV2</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/llm_pipeline.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.llm_pipeline.LLM_Pipeline.retrieving_docs" title="Link to this definition"></a></dt>
+<dd><p>Retrieve and rerank documents for a given query.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>query</strong> (<em>str</em>) -- The user query (in English, after translation).</p></li>
+<li><p><strong>index_mapping</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>VectorIndexRetriever</em><em>]</em>) -- Mapping of index keys to retrievers.</p></li>
+<li><p><strong>indexes</strong> (<em>list</em><em>[</em><em>str</em><em>]</em>) -- Keys from index_mapping specifying which retrievers to query.</p></li>
+<li><p><strong>reranker_model</strong> (<em>CrossEncoder</em><em> | </em><em>GetFinetunedModelResponse</em>) -- Model used to rerank results. Supports SentenceTransformer CrossEncoder
+or a Cohere finetuned model reference.</p></li>
+<li><p><strong>cohere_client</strong> (<em>cohere.ClientV2</em><em> | </em><em>None</em>) -- Cohere client, required if reranker_model is Cohere.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>List of [doc_text, metadata, score] for top reranked documents.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[list]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="backend.api.llm_pipeline.LLM_Pipeline.starting_prompt">
+<span class="sig-name descname"><span class="pre">starting_prompt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/llm_pipeline.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.llm_pipeline.LLM_Pipeline.starting_prompt" title="Link to this definition"></a></dt>
+<dd><p>Classify a query as legal, non-legal, or unsafe.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>query</strong> (<em>str</em>) -- The raw user query.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>[bool, str | None] indicating if legal and optional message.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>If legal: returns [True, None]</p></li>
+<li><p>If non-legal: returns [False, &quot;&lt;short helpful answer + reminder&gt;&quot;]</p></li>
+<li><p>If unsafe (medical, financial, illegal, etc.): returns
+[False, &quot;I'm a legal assistant. I cannot answer unsafe...&quot;]</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="backend.api.llm_pipeline.LLM_Pipeline.query_translation">
+<span class="sig-name descname"><span class="pre">query_translation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/llm_pipeline.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.llm_pipeline.LLM_Pipeline.query_translation" title="Link to this definition"></a></dt>
+<dd><p>Translate query into English if necessary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>query</strong> (<em>str</em>) -- User query in any supported language.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(language_name, translated_query)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="backend.api.llm_pipeline.LLM_Pipeline.web_search">
+<span class="sig-name descname"><span class="pre">web_search</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/llm_pipeline.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.llm_pipeline.LLM_Pipeline.web_search" title="Link to this definition"></a></dt>
+<dd><p>Perform a web search via TavilySearch and summarize results.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>query</strong> (<em>str</em>) -- User query (in English).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>{'search_results': str} summarizing retrieved context.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="backend.api.llm_pipeline.LLM_Pipeline.rag_pipeline">
+<span class="sig-name descname"><span class="pre">rag_pipeline</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/llm_pipeline.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.llm_pipeline.LLM_Pipeline.rag_pipeline" title="Link to this definition"></a></dt>
+<dd><p>Run the LangGraph workflow (query rewriting -&gt; classification -&gt; retrieval -&gt; context).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>query</strong> (<em>str</em>) -- User query in English.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>{'query': query,'summarized_context': str}</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="backend.api.llm_pipeline.LLM_Pipeline.query_rewriting">
+<span class="sig-name descname"><span class="pre">query_rewriting</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/llm_pipeline.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.llm_pipeline.LLM_Pipeline.query_rewriting" title="Link to this definition"></a></dt>
+<dd><p>Generate two paraphrased variations of the query.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>state</strong> (<em>dict</em>) -- Workflow state containing 'user_query'.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>{'questions': {0: original, 1: rewrite1, 2: rewrite2}}</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="backend.api.llm_pipeline.LLM_Pipeline.run_classifications_parallel">
+<span class="sig-name descname"><span class="pre">run_classifications_parallel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/llm_pipeline.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.llm_pipeline.LLM_Pipeline.run_classifications_parallel" title="Link to this definition"></a></dt>
+<dd><p>Classify original query + rewrites in parallel.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>state</strong> (<em>dict</em>) -- Workflow state containing 'questions'.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>{'query_classification': {0: [...], 1: [...], 2: [...]}}</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="backend.api.llm_pipeline.LLM_Pipeline.query_classification">
+<span class="sig-name descname"><span class="pre">query_classification</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/llm_pipeline.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.llm_pipeline.LLM_Pipeline.query_classification" title="Link to this definition"></a></dt>
+<dd><p>Classify a query into one or more legal categories.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>state</strong> (<em>dict</em>) -- Workflow state containing 'questions'.</p></li>
+<li><p><strong>level</strong> (<em>int</em>) -- Which query variant to classify.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>{'query_classification': {level: [query_text, index_keys]}}</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="backend.api.llm_pipeline.LLM_Pipeline.run_retrievals_parallel">
+<span class="sig-name descname"><span class="pre">run_retrievals_parallel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/llm_pipeline.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.llm_pipeline.LLM_Pipeline.run_retrievals_parallel" title="Link to this definition"></a></dt>
+<dd><p>Retrieve documents for each query variant in parallel.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>state</strong> (<em>dict</em>) -- Workflow state with classifications.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>{'retrieved_docs': {0: [...], 1: [...], 2: [...]}}</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="backend.api.llm_pipeline.LLM_Pipeline.retrieve_docs">
+<span class="sig-name descname"><span class="pre">retrieve_docs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/llm_pipeline.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.llm_pipeline.LLM_Pipeline.retrieve_docs" title="Link to this definition"></a></dt>
+<dd><p>Retrieve docs for a single query variant.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>state</strong> (<em>dict</em>) -- Workflow state with classifications.</p></li>
+<li><p><strong>level</strong> (<em>int</em>) -- Which query variant to process.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>List of [doc_text, metadata, score] or None if no indexes found.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="backend.api.llm_pipeline.LLM_Pipeline.get_context">
+<span class="sig-name descname"><span class="pre">get_context</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/llm_pipeline.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.llm_pipeline.LLM_Pipeline.get_context" title="Link to this definition"></a></dt>
+<dd><p>Summarize retrieved documents into a coherent context.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>state</strong> (<em>dict</em>) -- Workflow state containing 'retrieved_docs' and 'questions'.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>{'summarized_context': str} – the aggregated context string.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Iterates through retrieval results for each query variant (0,1,2).</p></li>
+<li><p>Summarizes each batch of retrieved documents via the LLM.</p></li>
+<li><p>Concatenates summaries into a single combined context.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="backend.api.llm_pipeline.LLM_Pipeline.get_search_results">
+<span class="sig-name descname"><span class="pre">get_search_results</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/llm_pipeline.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.llm_pipeline.LLM_Pipeline.get_search_results" title="Link to this definition"></a></dt>
+<dd><p>Perform Tavily web search and summarize results.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>query</strong> (<em>str</em>) -- User query in English.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>{'search_results': str} – summarized context from Tavily results.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="backend.api.llm_pipeline.LLM_Pipeline.initialize_workflow">
+<span class="sig-name descname"><span class="pre">initialize_workflow</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/llm_pipeline.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.llm_pipeline.LLM_Pipeline.initialize_workflow" title="Link to this definition"></a></dt>
+<dd><p>Build the LangGraph workflow that wires together pipeline nodes.</p>
+<section id="nodes">
+<h4>Nodes<a class="headerlink" href="#nodes" title="Link to this heading"></a></h4>
+<ul class="simple">
+<li><p>query_rewriting → generate paraphrases</p></li>
+<li><p>parallel_classification → classify all query variations</p></li>
+<li><p>parallel_retrieval → retrieve docs for classified categories</p></li>
+<li><p>get_context → summarize retrieved docs</p></li>
+</ul>
+</section>
+<section id="edges">
+<h4>Edges<a class="headerlink" href="#edges" title="Link to this heading"></a></h4>
+<p>query_rewriting → parallel_classification
+parallel_classification → parallel_retrieval
+parallel_retrieval → get_context</p>
+<dl class="field-list simple">
+<dt class="field-odd">returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Compiled LangGraph app with MemorySaver checkpointing.</p>
+</dd>
+<dt class="field-even">rtype<span class="colon">:</span></dt>
+<dd class="field-even"><p>StateGraph</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="backend.api.llm_pipeline.LLM_Pipeline.run_full_pipeline">
+<span class="sig-name descname"><span class="pre">run_full_pipeline</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/llm_pipeline.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.llm_pipeline.LLM_Pipeline.run_full_pipeline" title="Link to this definition"></a></dt>
+<dd><p>Execute the full RAG workflow for a user query.</p>
+<section id="id1">
+<h4>Steps<a class="headerlink" href="#id1" title="Link to this heading"></a></h4>
+<ol class="arabic simple">
+<li><p>starting_prompt → checks safety &amp; domain.</p></li>
+<li><p>query_translation → ensures English query.</p></li>
+<li><p>Run web_search + rag_pipeline in parallel.</p></li>
+<li><p>Aggregate results: legal context + web results.</p></li>
+</ol>
+<dl class="field-list simple">
+<dt class="field-odd">param query<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Raw user query (any language).</p>
+</dd>
+<dt class="field-even">type query<span class="colon">:</span></dt>
+<dd class="field-even"><p>str</p>
+</dd>
+<dt class="field-odd">returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt>If query is legal:</dt><dd><p>{
+&quot;query&quot;: translated_query, &quot;summarized_context&quot;: str, &quot;search_results&quot;: str, &quot;language&quot;: str
+}</p>
+</dd>
+<dt>If query is non-legal or unsafe:</dt><dd><p>str – helpful or refusal message.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">rtype<span class="colon">:</span></dt>
+<dd class="field-even"><p>dict | str</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+</section>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../fast_api/index.html" class="btn btn-neutral float-left" title="backend.api.fast_api" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../models/index.html" class="btn btn-neutral float-right" title="backend.api.models" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Ioannis Katoikos.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

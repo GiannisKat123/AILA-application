@@ -1,0 +1,202 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="English" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>services/AuthService &mdash; AILA-Application</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css?v=4ae1632d" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=082ae3e5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="prev" title="pages/Register" href="../../pages/Register/README.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            AILA-Application
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../backend/index.html">API Reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">Frontend Typescript Documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../../index.html#overview">Overview</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../../../index.html#api-reference">API Reference</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../../api/axios/README.html">api/axios</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../App/README.html">App</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../components/Template/README.html">components/Template</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../context/AuthContext/README.html">context/AuthContext</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../main/README.html">main</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../models/Types/README.html">models/Types</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../pages/Chat/README.html">pages/Chat</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../pages/Login/README.html">pages/Login</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../pages/Register/README.html">pages/Register</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">services/AuthService</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#remarks">Remarks</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#responsibilities">Responsibilities</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#conventions">Conventions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#example">Example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#functions">Functions</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">AILA-Application</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Frontend Typescript Documentation</a></li>
+      <li class="breadcrumb-item active">services/AuthService</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/frontend/api/services/AuthService/README.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <p><a class="reference internal" href="../../README.html"><span class="std std-doc"><strong>vite-project v0.0.0</strong></span></a></p>
+<hr class="docutils" />
+<section id="services-authservice">
+<h1>services/AuthService<a class="headerlink" href="#services-authservice" title="Link to this heading"></a></h1>
+<p>Axios-based client for the AILA backend API.</p>
+<section id="remarks">
+<h2>Remarks<a class="headerlink" href="#remarks" title="Link to this heading"></a></h2>
+<p>Axios client for the AILA backend. Encapsulates all HTTP calls:</p>
+<ul class="simple">
+<li><p>Login, logout, register, verify</p></li>
+<li><p>Conversations (create, fetch, rename)</p></li>
+<li><p>Messages (create, fetch)</p></li>
+<li><p>Feedback submission</p></li>
+<li><p>Request endpoint (chat)</p></li>
+</ul>
+</section>
+<section id="responsibilities">
+<h2>Responsibilities<a class="headerlink" href="#responsibilities" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Encapsulates all HTTP calls (login, register, verify, conversations, messages, feedback, logout).</p></li>
+<li><p>Normalizes error handling and return shapes for the frontend.</p></li>
+</ul>
+</section>
+<section id="conventions">
+<h2>Conventions<a class="headerlink" href="#conventions" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>All requests use <code class="docutils literal notranslate"><span class="pre">withCredentials:</span> <span class="pre">true</span></code> to send HttpOnly cookies (JWT).</p></li>
+<li><p>On Axios errors, functions return <code class="docutils literal notranslate"><span class="pre">{</span> <span class="pre">error_message:</span> <span class="pre">string</span> <span class="pre">}</span></code> where applicable.</p></li>
+<li><p>Functions that don't need a payload from the server return <code class="docutils literal notranslate"><span class="pre">boolean</span> <span class="pre">|</span> <span class="pre">undefined</span></code>.</p></li>
+<li><p>Functions that must return data bubble it through <code class="docutils literal notranslate"><span class="pre">.data</span></code> as typed.</p></li>
+</ul>
+<p>Conventions:</p>
+<ul class="simple">
+<li><p>All requests → <code class="docutils literal notranslate"><span class="pre">withCredentials:</span> <span class="pre">true</span></code> (send cookies)</p></li>
+<li><p>Errors → return <code class="docutils literal notranslate"><span class="pre">{</span> <span class="pre">error_message</span> <span class="pre">}</span></code> where possible</p></li>
+<li><p>Functions without data → return <code class="docutils literal notranslate"><span class="pre">boolean</span> <span class="pre">|</span> <span class="pre">undefined</span></code></p></li>
+<li><p>Functions with data → bubble <code class="docutils literal notranslate"><span class="pre">.data</span></code></p></li>
+</ul>
+</section>
+<section id="example">
+<h2>Example<a class="headerlink" href="#example" title="Link to this heading"></a></h2>
+<div class="highlight-ts notranslate"><div class="highlight"><pre><span></span><span class="k">import</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">loginAPI</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="kr">from</span><span class="w"> </span><span class="s1">&#39;../services/AuthService&#39;</span><span class="p">;</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">res</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">loginAPI</span><span class="p">(</span><span class="s1">&#39;alice&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;s3cret&#39;</span><span class="p">);</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="s1">&#39;user_details&#39;</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="nx">res</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">res</span><span class="p">.</span><span class="nx">user_details</span><span class="p">.</span><span class="nx">username</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="functions/createConversationAPI.html"><span class="std std-doc">createConversationAPI</span></a></p></li>
+<li><p><a class="reference internal" href="functions/createMessageAPI.html"><span class="std std-doc">createMessageAPI</span></a></p></li>
+<li><p><a class="reference internal" href="functions/getConversationsAPI.html"><span class="std std-doc">getConversationsAPI</span></a></p></li>
+<li><p><a class="reference internal" href="functions/getUserMessagesAPI.html"><span class="std std-doc">getUserMessagesAPI</span></a></p></li>
+<li><p><a class="reference internal" href="functions/loginAPI.html"><span class="std std-doc">loginAPI</span></a></p></li>
+<li><p><a class="reference internal" href="functions/logoutAPI.html"><span class="std std-doc">logoutAPI</span></a></p></li>
+<li><p><a class="reference internal" href="functions/registerAPI.html"><span class="std std-doc">registerAPI</span></a></p></li>
+<li><p><a class="reference internal" href="functions/renameConversationAPI.html"><span class="std std-doc">renameConversationAPI</span></a></p></li>
+<li><p><a class="reference internal" href="functions/requestAPI.html"><span class="std std-doc">requestAPI</span></a></p></li>
+<li><p><a class="reference internal" href="functions/resendCodeAPI.html"><span class="std std-doc">resendCodeAPI</span></a></p></li>
+<li><p><a class="reference internal" href="functions/userFeedbackAPI.html"><span class="std std-doc">userFeedbackAPI</span></a></p></li>
+<li><p><a class="reference internal" href="functions/verifyAPI.html"><span class="std std-doc">verifyAPI</span></a></p></li>
+<li><p><a class="reference internal" href="functions/verifyUser.html"><span class="std std-doc">verifyUser</span></a></p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../../pages/Register/README.html" class="btn btn-neutral float-left" title="pages/Register" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Ioannis Katoikos.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,253 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="English" data-content_root="../../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>backend.database.entities.conversations &mdash; AILA-Application</title>
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/graphviz.css?v=4ae1632d" />
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="../../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../../_static/documentation_options.js?v=082ae3e5"></script>
+      <script src="../../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script src="../../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" />
+    <link rel="next" title="backend.database.entities.messages" href="../messages/index.html" />
+    <link rel="prev" title="backend.database.entities" href="../index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../../index.html" class="icon icon-home">
+            AILA-Application
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../../../../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../../index.html">backend</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="../../../index.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="../../../api/index.html">backend.api</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../cache_models/index.html">backend.cache_models</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../crypt/index.html">backend.crypt</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="../../index.html">backend.database</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../main/index.html">backend.main</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../frontend/index.html">Frontend Typescript Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">AILA-Application</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../../index.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">backend</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">backend.database</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">backend.database.entities</a></li>
+      <li class="breadcrumb-item active">backend.database.entities.conversations</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../../_sources/backend/backend/database/entities/conversations/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-backend.database.entities.conversations">
+<span id="backend-database-entities-conversations"></span><h1>backend.database.entities.conversations<a class="headerlink" href="#module-backend.database.entities.conversations" title="Link to this heading"></a></h1>
+<p>The <code class="docutils literal notranslate"><span class="pre">Conversation</span></code> ORM model represents a user-owned conversation record stored
+in the <code class="docutils literal notranslate"><span class="pre">conversation</span></code> PostgreSQL table. It is implemented with SQLAlchemy
+2.0-style typing and PostgreSQL UUID columns.</p>
+<section id="key-features">
+<h2>Key features<a class="headerlink" href="#key-features" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>PostgreSQL-native UUID primary key (<code class="docutils literal notranslate"><span class="pre">id</span></code>)</p></li>
+<li><p>Human-readable name (<code class="docutils literal notranslate"><span class="pre">conversation_name</span></code>)</p></li>
+<li><p>Foreign key to the owning user (<code class="docutils literal notranslate"><span class="pre">user_id</span></code> → <code class="docutils literal notranslate"><span class="pre">app_user.id</span></code>)</p></li>
+<li><p>Timezone-aware <code class="docutils literal notranslate"><span class="pre">last_updated</span></code> timestamp (UTC)</p></li>
+</ul>
+</section>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading"></a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#backend.database.entities.conversations.Conversation" title="backend.database.entities.conversations.Conversation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Conversation</span></code></a></p></td>
+<td><p>ORM model for the <cite>conversation</cite> table.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="backend.database.entities.conversations.Conversation">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Conversation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">conversation_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uuid.UUID</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conversation_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">uuid.UUID</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">last_updated</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/database/entities/conversations.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.database.entities.conversations.Conversation" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="../../config/connection_engine/index.html#backend.database.config.connection_engine.declarativeBase" title="backend.database.config.connection_engine.declarativeBase"><code class="xref py py-obj docutils literal notranslate"><span class="pre">backend.database.config.connection_engine.declarativeBase</span></code></a></p>
+<p>ORM model for the <cite>conversation</cite> table.
+Represents a conversation belonging to a specific user.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="backend.database.entities.conversations.Conversation.id">
+<span class="sig-name descname"><span class="pre">id</span></span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/database/entities/conversations.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.database.entities.conversations.Conversation.id" title="Link to this definition"></a></dt>
+<dd><p>Primary key. Unique identifier for the conversation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>UUID</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="backend.database.entities.conversations.Conversation.conversation_name">
+<span class="sig-name descname"><span class="pre">conversation_name</span></span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/database/entities/conversations.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.database.entities.conversations.Conversation.conversation_name" title="Link to this definition"></a></dt>
+<dd><p>Human-readable name/title of the conversation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="backend.database.entities.conversations.Conversation.user_id">
+<span class="sig-name descname"><span class="pre">user_id</span></span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/database/entities/conversations.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.database.entities.conversations.Conversation.user_id" title="Link to this definition"></a></dt>
+<dd><p>Foreign key reference to the <cite>app_user</cite> table (the owner of the conversation).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>UUID</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="backend.database.entities.conversations.Conversation.last_updated">
+<span class="sig-name descname"><span class="pre">last_updated</span></span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/database/entities/conversations.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.database.entities.conversations.Conversation.last_updated" title="Link to this definition"></a></dt>
+<dd><p>Timestamp of the last update to the conversation.
+Defaults to the current UTC time.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>datetime</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="backend.database.entities.conversations.Conversation.__tablename__">
+<span class="sig-name descname"><span class="pre">__tablename__</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'conversation'</span></em><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/database/entities/conversations.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.database.entities.conversations.Conversation.__tablename__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id0">
+<span class="sig-name descname"><span class="pre">id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">sqlalchemy.orm.Mapped</span><span class="p"><span class="pre">[</span></span><span class="pre">uuid.UUID</span><span class="p"><span class="pre">]</span></span></em><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/database/entities/conversations.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id0" title="Link to this definition"></a></dt>
+<dd><p>Primary key. UUID of the conversation.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id1">
+<span class="sig-name descname"><span class="pre">conversation_name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">sqlalchemy.orm.Mapped</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/database/entities/conversations.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id1" title="Link to this definition"></a></dt>
+<dd><p>Name of the conversation (cannot be null).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id2">
+<span class="sig-name descname"><span class="pre">user_id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">sqlalchemy.orm.Mapped</span><span class="p"><span class="pre">[</span></span><span class="pre">uuid.UUID</span><span class="p"><span class="pre">]</span></span></em><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/database/entities/conversations.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id2" title="Link to this definition"></a></dt>
+<dd><p>Foreign key reference to the <cite>app_user</cite> table (owner).</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id3">
+<span class="sig-name descname"><span class="pre">last_updated</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">sqlalchemy.orm.Mapped</span><span class="p"><span class="pre">[</span></span><span class="pre">datetime.datetime</span><span class="p"><span class="pre">]</span></span></em><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/database/entities/conversations.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id3" title="Link to this definition"></a></dt>
+<dd><p>Timestamp when the conversation was last updated. Defaults to now (UTC).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="backend.database.entities.conversations.Conversation.__str__">
+<span class="sig-name descname"><span class="pre">__str__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/database/entities/conversations.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.database.entities.conversations.Conversation.__str__" title="Link to this definition"></a></dt>
+<dd><p>Return a human-readable string representation of the Conversation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A formatted string containing user ID, conversation name, and last updated timestamp.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../index.html" class="btn btn-neutral float-left" title="backend.database.entities" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../messages/index.html" class="btn btn-neutral float-right" title="backend.database.entities.messages" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Ioannis Katoikos.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

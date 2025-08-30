@@ -1,0 +1,437 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="English" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>backend.api.fast_api &mdash; AILA-Application</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css?v=4ae1632d" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=082ae3e5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=f930bc37"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="backend.api.llm_pipeline" href="../llm_pipeline/index.html" />
+    <link rel="prev" title="backend.api" href="../index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            AILA-Application
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">backend</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="../../index.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="../index.html">backend.api</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../cache_models/index.html">backend.cache_models</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../crypt/index.html">backend.crypt</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../database/index.html">backend.database</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../main/index.html">backend.main</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../frontend/index.html">Frontend Typescript Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">AILA-Application</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">API Reference</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">backend</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">backend.api</a></li>
+      <li class="breadcrumb-item active">backend.api.fast_api</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/backend/backend/api/fast_api/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-backend.api.fast_api">
+<span id="backend-api-fast-api"></span><h1>backend.api.fast_api<a class="headerlink" href="#module-backend.api.fast_api" title="Link to this heading"></a></h1>
+<p>FastAPI Router: Authentication, User Management, Conversations, and Chat API</p>
+<p>This module defines the HTTP API endpoints exposed by the backend. It handles:
+- User login, registration, verification, and logout
+- Conversation creation, update, retrieval
+- Messaging (new messages, fetch messages)
+- Feedback on messages
+- Integration with the LLM pipeline for legal Q&amp;A</p>
+<p>Each endpoint validates input via Pydantic models and returns structured responses.</p>
+<section id="attributes">
+<h2>Attributes<a class="headerlink" href="#attributes" title="Link to this heading"></a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#backend.api.fast_api.router" title="backend.api.fast_api.router"><code class="xref py py-obj docutils literal notranslate"><span class="pre">router</span></code></a></p></td>
+<td><p>Creates the FastAPI router in which we define its routes</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#backend.api.fast_api.login" title="backend.api.fast_api.login"><code class="xref py py-obj docutils literal notranslate"><span class="pre">login</span></code></a>(data, response)</p></td>
+<td><p>Authenticate a user and set JWT as cookie.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#backend.api.fast_api.register" title="backend.api.fast_api.register"><code class="xref py py-obj docutils literal notranslate"><span class="pre">register</span></code></a>(data)</p></td>
+<td><p>Register a new user account.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#backend.api.fast_api.verify" title="backend.api.fast_api.verify"><code class="xref py py-obj docutils literal notranslate"><span class="pre">verify</span></code></a>(data)</p></td>
+<td><p>Verify a user's email using a code.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#backend.api.fast_api.resend_code" title="backend.api.fast_api.resend_code"><code class="xref py py-obj docutils literal notranslate"><span class="pre">resend_code</span></code></a>(data)</p></td>
+<td><p>Resend a verification code to a user's email.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#backend.api.fast_api.new_conversation" title="backend.api.fast_api.new_conversation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">new_conversation</span></code></a>(data)</p></td>
+<td><p>Create a new conversation.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#backend.api.fast_api.update_conversation" title="backend.api.fast_api.update_conversation"><code class="xref py py-obj docutils literal notranslate"><span class="pre">update_conversation</span></code></a>(data)</p></td>
+<td><p>Update the name of an existing conversation.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#backend.api.fast_api.new_message" title="backend.api.fast_api.new_message"><code class="xref py py-obj docutils literal notranslate"><span class="pre">new_message</span></code></a>(data)</p></td>
+<td><p>Create a new message in a conversation.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#backend.api.fast_api.get_user_conversations" title="backend.api.fast_api.get_user_conversations"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_user_conversations</span></code></a>([token, username])</p></td>
+<td><p>Fetch all conversations for a given user.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#backend.api.fast_api.get_messages" title="backend.api.fast_api.get_messages"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_messages</span></code></a>([token, conversation_id])</p></td>
+<td><p>Fetch messages for a given conversation.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#backend.api.fast_api.user_feedback" title="backend.api.fast_api.user_feedback"><code class="xref py py-obj docutils literal notranslate"><span class="pre">user_feedback</span></code></a>(data)</p></td>
+<td><p>Submit feedback for a user message.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#backend.api.fast_api.get_user" title="backend.api.fast_api.get_user"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_user</span></code></a>([token])</p></td>
+<td><p>Retrieve user details from JWT token.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#backend.api.fast_api.chat_endpoint" title="backend.api.fast_api.chat_endpoint"><code class="xref py py-obj docutils literal notranslate"><span class="pre">chat_endpoint</span></code></a>(request_data, request)</p></td>
+<td><p>Main chat endpoint integrating with the LLM pipeline.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#backend.api.fast_api.logout" title="backend.api.fast_api.logout"><code class="xref py py-obj docutils literal notranslate"><span class="pre">logout</span></code></a>(response)</p></td>
+<td><p>Logout user by clearing JWT cookie.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading"></a></h2>
+<dl class="py data">
+<dt class="sig sig-object py" id="backend.api.fast_api.router">
+<span class="sig-name descname"><span class="pre">router</span></span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/fast_api.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.fast_api.router" title="Link to this definition"></a></dt>
+<dd><p>Creates the FastAPI router in which we define its routes</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="backend.api.fast_api.login">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">login</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../models/index.html#backend.api.models.UserCredentials" title="backend.api.models.UserCredentials"><span class="pre">backend.api.models.UserCredentials</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">response</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">fastapi.Response</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/fast_api.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.fast_api.login" title="Link to this definition"></a></dt>
+<dd><p>Authenticate a user and set JWT as cookie.</p>
+<section id="request-body">
+<h3>Request Body<a class="headerlink" href="#request-body" title="Link to this heading"></a></h3>
+<p>UserCredentials {username: str, password: str}</p>
+<dl class="field-list simple">
+<dt class="field-odd">returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>{'user_details': {...}} if successful.</p>
+</dd>
+<dt class="field-even">rtype<span class="colon">:</span></dt>
+<dd class="field-even"><p>dict</p>
+</dd>
+<dt class="field-odd">raises HTTPException 401<span class="colon">:</span></dt>
+<dd class="field-odd"><p>If authentication fails.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="backend.api.fast_api.register">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">register</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../models/index.html#backend.api.models.UserData" title="backend.api.models.UserData"><span class="pre">backend.api.models.UserData</span></a></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/fast_api.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.fast_api.register" title="Link to this definition"></a></dt>
+<dd><p>Register a new user account.</p>
+<section id="id1">
+<h3>Request Body<a class="headerlink" href="#id1" title="Link to this heading"></a></h3>
+<p>UserData {username: str, password: str, email: str}</p>
+<dl class="field-list simple">
+<dt class="field-odd">returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if registration successful.</p>
+</dd>
+<dt class="field-even">rtype<span class="colon">:</span></dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+<dt class="field-odd">raises HTTPException 401<span class="colon">:</span></dt>
+<dd class="field-odd"><p>If username or email already exists, or invalid password.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="backend.api.fast_api.verify">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">verify</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../models/index.html#backend.api.models.VerifCode" title="backend.api.models.VerifCode"><span class="pre">backend.api.models.VerifCode</span></a></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/fast_api.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.fast_api.verify" title="Link to this definition"></a></dt>
+<dd><p>Verify a user's email using a code.</p>
+<section id="id2">
+<h3>Request Body<a class="headerlink" href="#id2" title="Link to this heading"></a></h3>
+<p>VerifCode {username: str, code: str}</p>
+<dl class="field-list simple">
+<dt class="field-odd">returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if verification successful.</p>
+</dd>
+<dt class="field-even">rtype<span class="colon">:</span></dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+<dt class="field-odd">raises HTTPException 401<span class="colon">:</span></dt>
+<dd class="field-odd"><p>If code expired or mismatched.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="backend.api.fast_api.resend_code">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">resend_code</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../models/index.html#backend.api.models.UserOpenData" title="backend.api.models.UserOpenData"><span class="pre">backend.api.models.UserOpenData</span></a></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/fast_api.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.fast_api.resend_code" title="Link to this definition"></a></dt>
+<dd><p>Resend a verification code to a user's email.</p>
+<section id="id3">
+<h3>Request Body<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
+<p>UserOpenData {username: str, email: str}</p>
+<dl class="field-list simple">
+<dt class="field-odd">returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if code resent.</p>
+</dd>
+<dt class="field-even">rtype<span class="colon">:</span></dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="backend.api.fast_api.new_conversation">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">new_conversation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../models/index.html#backend.api.models.ConversationCreationDetails" title="backend.api.models.ConversationCreationDetails"><span class="pre">backend.api.models.ConversationCreationDetails</span></a></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/fast_api.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.fast_api.new_conversation" title="Link to this definition"></a></dt>
+<dd><p>Create a new conversation.</p>
+<section id="id4">
+<h3>Request Body<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
+<p>ConversationCreationDetails {username: str, conversation_name: str}</p>
+<dl class="field-list simple">
+<dt class="field-odd">returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>{'conversation_name': str, 'conversation_id': UUID}</p>
+</dd>
+<dt class="field-even">rtype<span class="colon">:</span></dt>
+<dd class="field-even"><p>dict</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="backend.api.fast_api.update_conversation">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">update_conversation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../models/index.html#backend.api.models.UpdateConversationDetails" title="backend.api.models.UpdateConversationDetails"><span class="pre">backend.api.models.UpdateConversationDetails</span></a></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/fast_api.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.fast_api.update_conversation" title="Link to this definition"></a></dt>
+<dd><p>Update the name of an existing conversation.</p>
+<section id="id5">
+<h3>Request Body<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
+<p>UpdateConversationDetails {conversation_id: str, conversation_name: str}</p>
+<dl class="field-list simple">
+<dt class="field-odd">returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if update successful.</p>
+</dd>
+<dt class="field-even">rtype<span class="colon">:</span></dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="backend.api.fast_api.new_message">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">new_message</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../models/index.html#backend.api.models.NewMessage" title="backend.api.models.NewMessage"><span class="pre">backend.api.models.NewMessage</span></a></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/fast_api.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.fast_api.new_message" title="Link to this definition"></a></dt>
+<dd><p>Create a new message in a conversation.</p>
+<section id="id6">
+<h3>Request Body<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
+<p>NewMessage {id: str, conversation_id: str, text: str, role: str, feedback: bool|None}</p>
+<dl class="field-list simple">
+<dt class="field-odd">returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>{'id': str, 'message': str, 'timestamp': str, 'role': str}</p>
+</dd>
+<dt class="field-even">rtype<span class="colon">:</span></dt>
+<dd class="field-even"><p>dict</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="backend.api.fast_api.get_user_conversations">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_user_conversations</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">token</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Cookie(None)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">username</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/fast_api.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.fast_api.get_user_conversations" title="Link to this definition"></a></dt>
+<dd><p>Fetch all conversations for a given user.</p>
+<section id="id7">
+<h3>Request Body<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>username<span class="classifier">str</span></dt><dd><p>The username whose conversations to fetch.</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>[{'conversation_name': str, 'conversation_id': UUID}, ...]</p>
+</dd>
+<dt class="field-even">rtype<span class="colon">:</span></dt>
+<dd class="field-even"><p>list[dict]</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="backend.api.fast_api.get_messages">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_messages</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">token</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Cookie(None)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conversation_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/fast_api.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.fast_api.get_messages" title="Link to this definition"></a></dt>
+<dd><p>Fetch messages for a given conversation.</p>
+<section id="id8">
+<h3>Request Body<a class="headerlink" href="#id8" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>conversation_id<span class="classifier">str</span></dt><dd><p>ID of the conversation.</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List of messages in ascending timestamp order.</p>
+</dd>
+<dt class="field-even">rtype<span class="colon">:</span></dt>
+<dd class="field-even"><p>list[dict]</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="backend.api.fast_api.user_feedback">
+<span class="sig-name descname"><span class="pre">user_feedback</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../models/index.html#backend.api.models.UserFeedback" title="backend.api.models.UserFeedback"><span class="pre">backend.api.models.UserFeedback</span></a></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/fast_api.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.fast_api.user_feedback" title="Link to this definition"></a></dt>
+<dd><p>Submit feedback for a user message.</p>
+<section id="id9">
+<h3>Request Body<a class="headerlink" href="#id9" title="Link to this heading"></a></h3>
+<p>UserFeedback {message_id: str, conversation_id: str, feedback: bool|None}</p>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="backend.api.fast_api.get_user">
+<span class="sig-name descname"><span class="pre">get_user</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">token</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Cookie(None)</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/fast_api.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.fast_api.get_user" title="Link to this definition"></a></dt>
+<dd><p>Retrieve user details from JWT token.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>{'username': str, 'email': str, 'verified': bool|None}</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="backend.api.fast_api.chat_endpoint">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">chat_endpoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../models/index.html#backend.api.models.Message" title="backend.api.models.Message"><span class="pre">backend.api.models.Message</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">request</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">fastapi.Request</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/fast_api.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.fast_api.chat_endpoint" title="Link to this definition"></a></dt>
+<dd><p>Main chat endpoint integrating with the LLM pipeline.</p>
+<section id="id10">
+<h3>Request Body<a class="headerlink" href="#id10" title="Link to this heading"></a></h3>
+<p>Message {message: str, conversation_history: list[dict]}</p>
+<dl class="field-list simple">
+<dt class="field-odd">returns<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><em>StreamingResponse</em> -- Streamed LLM-generated response (Server-Sent Events).</p></li>
+<li><p><em>JSONResponse</em> -- If the query is rejected as unsafe or non-legal.</p></li>
+</ul>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="backend.api.fast_api.logout">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">logout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">response</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">fastapi.Response</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/GiannisKat123/AILA-application/blob/main/backend/api/fast_api.py"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#backend.api.fast_api.logout" title="Link to this definition"></a></dt>
+<dd><p>Logout user by clearing JWT cookie.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if logout successful.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../index.html" class="btn btn-neutral float-left" title="backend.api" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../llm_pipeline/index.html" class="btn btn-neutral float-right" title="backend.api.llm_pipeline" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Ioannis Katoikos.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
