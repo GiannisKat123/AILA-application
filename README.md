@@ -101,7 +101,7 @@ With two lines using the Dockerfile provided in repository by running
 In this case make sure that the Frontend and Backend URLs are the same in the environmental variables file. For example: **'http://localhost:8080'**
 
 ## Usage
-For more information about the functionalities of the software in the backend and frontend components, you can visit the docs [here]()
+For more information about the functionalities of the software in the backend and frontend components, you can visit the docs [here](https://gianniskat123.github.io/AILA-application/)
 
 ## Acknowledgements
 AILA stands for "Artificial Intelligence-driven Framework and Legal Advice Tools for Phishing Prevention and Mitigation in Information Systems", which is a research project financially supported by the Hellenic Foundation for Research and Innovation (H.F.R.I).
