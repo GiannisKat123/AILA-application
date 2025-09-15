@@ -42,6 +42,7 @@ EMBEDDING_MODELS = [
 # List of CrossEncoder reranker model IDs to cache.
 RERANKER_MODELS = [
     "BAAI/bge-reranker-base",
+    "IoannisKat1/bge-reranker-basefinetuned-new"
 ]
 """List of reranker models to download"""
 

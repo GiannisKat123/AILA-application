@@ -42,12 +42,13 @@ const Chat = () => {
     const [fileDoc, setDocument] = useState<File | null>(null);
     const [context, setContext] = useState("");
     const [generalFeedback, setGeneralFeedback] = useState("");
+    const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+
 
     const navigate = useNavigate();
     const chatRef = useRef<HTMLDivElement | null>(null);
+    const inputRef = useRef<HTMLInputElement | null>(null);
     const controllerRef = useRef<AbortController | null>(null);
-
-    console.log('CONVERSATIONS 1', conversations, user);
 
     useEffect(() => {
         if (user) fetchConversations(user.username);
@@ -146,6 +147,18 @@ const Chat = () => {
         return text; // all the text, acknowledging the Tribal Chief
     };
 
+    function onSelect(e: React.ChangeEvent<HTMLInputElement>) {
+        const selected = Array.from(e.target.files ?? []);
+        if (selected.length > 0) {
+            setUploadedFiles((prev) => [...prev, ...selected]);
+        }
+        e.target.value = "";
+    }
+
+    function openFileDialog() {
+        inputRef.current?.click();
+    }
+
     const handleFeedbackSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const feedback = await handleFeedback();
@@ -159,7 +172,7 @@ const Chat = () => {
         const query_id = messageFeedbackDetails['query_id'];
         const botAnswer_id = messageFeedbackDetails['generated_answer_id'];
         var document_text;
-        console.log(theme, fileDoc ? fileDoc.name : null, fileDoc, context)
+        // console.log(theme, fileDoc ? fileDoc.name : null, fileDoc, context)
         if (!fileDoc) {
             document_text = "";
         }
@@ -189,32 +202,66 @@ const Chat = () => {
         const userMessage = userQuery.trim();
         if (!userMessage) return;
 
-        const now = new Date().toISOString();
-        const newMessages = [
-            { message: userMessage, role: 'user', timestamp: now, id: uuidv4(), feedback: null },
-            { message: '', role: 'assistant', timestamp: now, id: uuidv4(), feedback: null }
-        ];
-
-        setMessages(prev => [...prev, ...newMessages]);
-        setUserQuery('');
-        setBotResponse('');
-
-        const controller = new AbortController();
-        controllerRef.current = controller;
-        setIsStreaming(true);
-
         try {
+
+            let newConv;
+            if (!currentConversation.conversation_name && user) {
+                newConv = await createConversation(`Conversation ${conversations?.length || 0}`, user?.username, 'normal');
+                if (newConv)
+                    setCurrentConversation(newConv)
+                fetchConversations(user.username)
+
+            }
+
+            const now = new Date().toISOString();
+            const newMessages = [
+                { message: userMessage, role: 'user', timestamp: now, id: uuidv4(), feedback: null },
+                { message: '', role: 'assistant', timestamp: now, id: uuidv4(), feedback: null }
+            ];
+
+            setMessages(prev => [...prev, ...newMessages]);
+            setUserQuery('');
+            setBotResponse('');
+
+            const controller = new AbortController();
+            controllerRef.current = controller;
+            setIsStreaming(true);
+
+            let type;
+            let conversation_id;
+            if (currentConversation.conversation_type === '') {
+                conversation_id = newConv?.conversation_id;
+                type = 'normal';
+            } else {
+                conversation_id = currentConversation.conversation_id
+                type = currentConversation.conversation_type;
+            }
+
+
+            console.log(messages);
+
+            const form = new FormData();
+            form.append("message", userMessage);
+            form.append("conversation_type", type);
+            form.append("web_search_tool", String(isOnline));  // must be string
+            form.append("conversation_history", JSON.stringify(messages.slice(-10)));
+
+
+            if (uploadedFiles) {
+                for (const f of uploadedFiles) {
+                    form.append("files", f); // multiple files allowed
+                }
+            }
+
+            for (const [k, v] of form.entries()) {
+                console.log("FD:", k, v instanceof File ? v.name : v);
+            }
+
             const res = await fetch(`${api.defaults.baseURL}/request`, {
-                method: 'POST',
+                method: "POST",
                 signal: controller.signal,
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({
-                    message: userMessage,
-                    conversation_history: messages.slice(-10),
-                    web_search_tool: isOnline,
-                    conversation_type: currentConversation.conversation_type
-                })
+                credentials: "include",
+                body: form, // no JSON.stringify, no Content-Type header
             });
 
             if (!res.ok || !res.body) {
@@ -250,9 +297,15 @@ const Chat = () => {
                 }
 
                 if (done) {
-                    await createMessage(currentConversation.conversation_id, userMessage, 'user', newMessages[0].id, newMessages[0].feedback);
-                    await createMessage(currentConversation.conversation_id, fullBotResponse, 'assistant', newMessages[1].id, newMessages[1].feedback);
-                    await fetchUserMessages(currentConversation.conversation_id);
+                    if (!conversation_id) {
+                        console.error("No conversation_id — cannot persist messages.");
+                        return; // or throw new Error("Missing conversation_id")
+                    }
+                    console.log(conversation_id, userMessage, 'user', newMessages[0].id, newMessages[0].feedback)
+                    console.log(conversation_id, fullBotResponse, 'assistant', newMessages[1].id, newMessages[1].feedback);
+                    await createMessage(conversation_id, userMessage, 'user', newMessages[0].id, newMessages[0].feedback);
+                    await createMessage(conversation_id, fullBotResponse, 'assistant', newMessages[1].id, newMessages[1].feedback);
+                    await fetchUserMessages(conversation_id);
                     break;
                 }
             }
@@ -299,7 +352,7 @@ const Chat = () => {
         e?: React.MouseEvent | React.FormEvent
     ) => {
         e?.preventDefault();
-        console.log(feedback);
+        // console.log(feedback);
         try {
             await userFeedback(message_index, conversation_id, feedback);
             setMessages((prev) =>
@@ -317,7 +370,7 @@ const Chat = () => {
             setEditingConvId('');
             return;
         }
-        console.log(conversationId, editedTitle.trim());
+        // console.log(conversationId, editedTitle.trim());
         await renameConversation(conversationId, editedTitle.trim());
 
         if (conversations) {
@@ -369,8 +422,10 @@ const Chat = () => {
             if (conversation_type === 'lawsuit') {
                 createAutomatedBotMessage(newConv.conversation_id, conversation_type);
             }
-            await fetchUserMessages(newConv.conversation_id); // 🔥 load messages for the new convo
-            await fetchConversations(user.username);          // 🔄 refresh sidebar list so it shows up immediately
+            await Promise.all([
+                fetchUserMessages(newConv.conversation_id),
+                fetchConversations(user.username),
+            ]);
             setSidebarOpen(false);
         }
     };
@@ -854,8 +909,46 @@ const Chat = () => {
                                     >
                                         Submit
                                     </button>
-
-                                    <button
+                                    {currentConversation.conversation_type == 'lawsuit' && (
+                                        <div>
+                                            <input
+                                                type='file'
+                                                ref={inputRef}
+                                                multiple
+                                                accept="image/*,audio/mpeg,audio/wav,application/pdf,.txt,.csv"
+                                                onChange={onSelect}
+                                                hidden
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={openFileDialog}
+                                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                                Upload Files
+                                            </button>
+                                            {!!uploadedFiles?.length && (
+                                                <ul className="max-h-32 overflow-auto text-xs border rounded-md p-2 space-y-1">
+                                                    {uploadedFiles.map((f, i) => (
+                                                        <li key={i} className='flex items-center justify-between gap-2'>
+                                                            <span className="truncate">{f.name}</span>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-gray-500">
+                                                                    {(f.size / (1024 * 1024)).toFixed(2)} MB
+                                                                </span>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setUploadedFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                                                                    className="px-2 py-1 border text-xs rounded hover:bg-gray-50"
+                                                                >
+                                                                    remove
+                                                                </button>
+                                                            </div>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            )}
+                                        </div>
+                                    )}
+                                    {currentConversation.conversation_type == 'normal' && (<button
                                         type="button"
                                         onClick={() => setOnlineMode(!isOnline)}
                                         aria-pressed={isOnline}
@@ -865,7 +958,18 @@ const Chat = () => {
                                                 : 'bg-blue-600 text-white hover:bg-blue-700'}`}
                                     >
                                         {isOnline ? 'RAG Mode' : 'Online Mode'}
-                                    </button>
+                                    </button>)}
+                                    {/* <button
+                                        type="button"
+                                        onClick={() => setOnlineMode(!isOnline)}
+                                        aria-pressed={isOnline}
+                                        className={`h-12 px-6 font-semibold text-sm md:text-base lg:text-lg rounded-md transition
+                    focus:outline-none focus:ring-2 focus:ring-blue-500 border border-gray-300 whitespace-nowrap
+                    ${isOnline ? 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                                                : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+                                    >
+                                        {isOnline ? 'RAG Mode' : 'Online Mode'}
+                                    </button> */}
                                 </div>
                             </div>
                         </form>

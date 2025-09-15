@@ -6,7 +6,14 @@ validation and automatic OpenAPI schema generation.
 """
 
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
+
+class FileRec(BaseModel):
+    original: str
+    path: str
+    mime: str
+    public_url: Optional[str] = None  # if you serve uploads via CDN/static
+
 
 class DocumentFeedbackDetails(BaseModel):
     query_id: str

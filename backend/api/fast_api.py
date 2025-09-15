@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Response, HTTPException, Cookie, Request
+from fastapi import APIRouter, Response, HTTPException, Cookie, Request, UploadFile, File, Form, Depends
 import json
 from backend.api.models import DocumentFeedbackDetails,UserFeedback,UserOpenData,VerifCode,UserCredentials, ConversationCreationDetails, UserData ,NewMessage, Message, UpdateConversationDetails
 from backend.database.core.funcs import create_document_feedback,update_conv,set_feedback,resend_ver_code,check_verification_code, check_create_user_instance ,login_user, update_token, get_user_messages, get_conversations, create_conversation, create_message
@@ -7,7 +7,9 @@ from fastapi.responses import StreamingResponse,JSONResponse
 from langchain.prompts import PromptTemplate 
 from langchain_openai import ChatOpenAI
 from backend.database.config.config import settings
-import os
+import os, json
+from typing import Optional, List
+from backend.api.prompt_utilities import persist_upload, build_messages
 
 router = APIRouter()
 
@@ -147,12 +149,47 @@ def get_user(token: str = Cookie(None)):
     except HTTPException as e:
         raise HTTPException(status_code=403, detail=e.detail)        
 
+async def parse_message_form(
+    message: Optional[str] = Form(None),
+    conversation_type: Optional[str] = Form(None),
+    web_search_tool: Optional[str] = Form(None),
+    conversation_history: Optional[str] = Form(None),
+) -> dict:
+    # Validate presence
+    missing = [k for k,v in {
+        "message": message,
+        "conversation_type": conversation_type,
+    }.items() if v in (None, "")]
+    if missing:
+        raise HTTPException(status_code=400, detail={"error":"missing_fields","fields":missing})
+
+    # Coerce boolean
+    web_search = str(web_search_tool).strip().lower() in {"1","true","yes","on"} if web_search_tool is not None else False
+
+    # Coerce history JSON (must be list)
+    hist_raw = conversation_history if conversation_history not in (None, "", "null") else "[]"
+    try:
+        history = json.loads(hist_raw)
+        if not isinstance(history, list):
+            raise ValueError("conversation_history must be a JSON array")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail={"error":"bad_conversation_history","reason":str(e)})
+
+    return {
+        "message": message,
+        "conversation_type": conversation_type,
+        "web_search_tool": web_search,
+        "conversation_history": history,
+    }
+
+
 @router.post('/request')
-async def chat_endpoint(request_data: Message,request:Request):
+async def chat_endpoint(request_data: Message = Depends(parse_message_form),files: Optional[List[UploadFile]] = File(None),request:Request=None):
 
-    print(request_data.conversation_history)
+    print(request_data.keys())
+    model = ChatOpenAI(model=settings.OPEN_AI_MODEL,api_key=settings.API_KEY, temperature=0.7,)
 
-    if request_data.conversation_type == 'lawsuit':
+    if request_data['conversation_type'] == 'lawsuit':
         path = 'backend/api/docs_for_lawsuits'
         docs = os.listdir(path)
         texts = []
@@ -163,15 +200,16 @@ async def chat_endpoint(request_data: Message,request:Request):
 
 
         prompt = """Find the language used in the following query: {message}"""
-        model_lang = ChatOpenAI(model=settings.OPEN_AI_MODEL,api_key=settings.API_KEY, temperature=0.7)
+        
         # Match the placeholder name with the keyword argument
-        response = model_lang.invoke(prompt.format(message=request_data.message))
+        response = model.invoke(prompt.format(message=request_data['message']))
         
         response_content = str(response.content).strip()
         language = response_content
 
-        llm_params = {}
+        file_list = [persist_upload(file) for file in files] if files else []
         
+
         prompt = """You are a meticulous legal drafting assistant for Greek criminal complaints about phishing/cyber fraud.
             Produce a complete, formally styled criminal complaint (Μήνυση) that mirrors authentic filings before Greek Prosecutors.
             Write the complaint **in Greek**, using clear sections, precision, numbering, and strictly chronological narration where relevant.
@@ -248,9 +286,28 @@ async def chat_endpoint(request_data: Message,request:Request):
 
             Generate your answer in {language}.
             
-            """.format(documents=texts, conversation_history=request_data.conversation_history,query=request_data.message,language=language)
+            """.format(documents=texts, conversation_history=request_data['conversation_history'],query=request_data['message'],language=language)
 
-    if request_data.conversation_type == 'normal':
+        
+        messages = build_messages(prompt,file_list)
+
+        print(messages)
+
+        async def generate():
+            try:
+                async for chunk in model.astream(messages):
+                    content = chunk.content if hasattr(chunk, 'content') else str(chunk)
+                    yield f"data: {json.dumps({'response': content, 'status': 200})}\n\n"
+
+            except Exception as e:
+                # Log error details            
+                # OR raise it, if you don't want partial yield
+                raise HTTPException(status_code=500, detail="Internal Server Error during LLM generation.")
+            
+        return StreamingResponse(generate(), media_type="text/event-stream")
+
+
+    if request_data['conversation_type'] == 'normal':
 
         prompt = """
             You are a highly competent legal assistant designed to provide accurate, well-reasoned, and context-aware answers to legal questions. Your responses should be clear, concise, and grounded in the provided legal context and conversation history.
@@ -280,34 +337,32 @@ async def chat_endpoint(request_data: Message,request:Request):
         """
         pipeline = request.app.state.pipeline 
         app_workflow = request.app.state.app
-        llm_params = pipeline.run_full_pipeline(request_data.message,request_data.conversation_history,app_workflow,web_search_activation=request_data.web_search_tool)        
+        llm_params = pipeline.run_full_pipeline(request_data['message'],request_data['conversation_history'],app_workflow,web_search_activation=request_data['web_search_tool'])        
 
-
-    if isinstance(llm_params, dict):
-         
-        if request_data.conversation_type == 'normal': prompt = prompt.format(**llm_params)
-
-        model = ChatOpenAI(model=settings.OPEN_AI_MODEL,api_key=settings.API_KEY, temperature=0.7)
-        # llm_params['conversation_history'] = request_data.conversation_history if len(request_data.conversation_history)!=0 else []
-        async def generate():
-            try:
-                async for chunk in model.astream(prompt):
-                    content = chunk.content if hasattr(chunk, 'content') else str(chunk)
-                    yield f"data: {json.dumps({'response': content, 'status': 200})}\n\n"
-
-            except Exception as e:
-                # Log error details            
-                # OR raise it, if you don't want partial yield
-                raise HTTPException(status_code=500, detail="Internal Server Error during LLM generation.")
+        if isinstance(llm_params, dict):
             
-        return StreamingResponse(generate(), media_type="text/event-stream")
-    elif isinstance(llm_params, str):
-        async def fake_stream():
-            yield f"data: {json.dumps({'response': llm_params, 'status': 200})}\n\n"
+            prompt = prompt.format(**llm_params)
 
-        return StreamingResponse(fake_stream(), media_type="text/event-stream")
-    else:
-        raise HTTPException(status_code=500, detail="Unexpected pipeline output.")
+            # llm_params['conversation_history'] = request_data['conversation_history'] if len(request_data['conversation_history'])!=0 else []
+            async def generate():
+                try:
+                    async for chunk in model.astream(prompt):
+                        content = chunk.content if hasattr(chunk, 'content') else str(chunk)
+                        yield f"data: {json.dumps({'response': content, 'status': 200})}\n\n"
+
+                except Exception as e:
+                    # Log error details            
+                    # OR raise it, if you don't want partial yield
+                    raise HTTPException(status_code=500, detail="Internal Server Error during LLM generation.")
+                
+            return StreamingResponse(generate(), media_type="text/event-stream")
+        elif isinstance(llm_params, str):
+            async def fake_stream():
+                yield f"data: {json.dumps({'response': llm_params, 'status': 200})}\n\n"
+
+            return StreamingResponse(fake_stream(), media_type="text/event-stream")
+        else:
+            raise HTTPException(status_code=500, detail="Unexpected pipeline output.")
         
 @router.post('/logout')
 async def logout(response:Response):

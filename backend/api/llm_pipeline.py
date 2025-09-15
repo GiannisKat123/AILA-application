@@ -20,16 +20,21 @@ from langchain_tavily import TavilySearch
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 from openai import OpenAI
+from sentence_transformers import CrossEncoder
 
 def load_vector_index(top_k:int,persist_dir:str, embedding):
     storage_context = StorageContext.from_defaults(persist_dir=persist_dir)
     index = load_index_from_storage(storage_context=storage_context,embed_model=embedding)
     return index.as_retriever(similarity_top_k=top_k,search_type='hybrid')
 
-def load_reranker_model():
-    co = cohere.ClientV2(settings.COHERE_API_KEY)
-    ft = co.finetuning.get_finetuned_model(settings.COHERE_MODEL_ID)
-    return co,ft
+def load_reranker_model(type:str):
+    if type == 'cohere':
+        co = cohere.ClientV2(settings.COHERE_API_KEY)
+        ft = co.finetuning.get_finetuned_model(settings.COHERE_MODEL_ID)
+        return {'cohere_client':co,'fituned_model':ft}
+    if type == 'cross-encoder':
+        reranker_model = CrossEncoder('backend\cached_reranker_models\IoannisKat1__bge-reranker-basefinetuned-new')
+        return {'reranker_model':reranker_model}
 
 def initialize_indexes(top_k:int):
 

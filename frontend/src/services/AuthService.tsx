@@ -90,7 +90,7 @@ const loginAPI = async (username: string, password: string): Promise<LoginAPIOut
  */
 const renameConversationAPI = async (conversation_name: string, conversation_id: string): Promise<boolean | ErrorMessage> => {
     try {
-        console.log("Renaming Conversation API called with:", conversation_name, conversation_id);
+        // console.log("Renaming Conversation API called with:", conversation_name, conversation_id);
         const response = await api.post('/update_conversation', { conversation_name: conversation_name, conversation_id: conversation_id }, { withCredentials: true });
         return response.data;
     }
@@ -232,7 +232,7 @@ const createConversationAPI = async (conversation_name: string, username: string
 
 const createDocumentFeedbackAPI = async (query_id: string, negative_answer_id: string, doc_name: string, document_text: string, context: string, theme: string): Promise<boolean | undefined> => {
     try {
-        console.log({ query_id: query_id, negative_answer_id: negative_answer_id, doc_name: doc_name, document_text: document_text, context: context, theme: theme })
+        // console.log({ query_id: query_id, negative_answer_id: negative_answer_id, doc_name: doc_name, document_text: document_text, context: context, theme: theme })
         const response = await api.post('/new_document_feedback', { query_id: query_id, negative_answer_id: negative_answer_id, doc_name: doc_name, doc_text: document_text, context: context, theme: theme }, { withCredentials: true })
         return response.data;
     }

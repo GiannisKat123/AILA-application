@@ -408,7 +408,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
    */
     const renameConversation = async (conversation_id: string, conversation_name: string): Promise<void | ErrorMessage> => {
         try {
-            console.log("Renaming Conversation", conversation_name, conversation_id);
+            // console.log("Renaming Conversation", conversation_name, conversation_id);
             const res = await renameConversationAPI(conversation_name, conversation_id);
 
             if (typeof res === 'object' && 'error_message' in res) {

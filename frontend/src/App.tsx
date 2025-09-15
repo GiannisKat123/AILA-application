@@ -60,7 +60,7 @@ function PrivateRoute({ children }: { children: JSX.Element }) {
   }
 
   // Debug output (can be removed in production)
-  console.log(user);
+  // console.log(user);
 
   return user && user.verified === true
     ? children
