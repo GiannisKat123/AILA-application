@@ -60,7 +60,7 @@ jobs:
         working-directory: frontend
         run: |
           # expects a script or config that outputs to frontend/new_docs/api
-          npm run new_docs:api
+          npm run docs:api
 
       - name: Copy frontend API docs into Sphinx source
         run: |
