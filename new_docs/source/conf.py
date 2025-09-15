@@ -27,6 +27,8 @@ extensions = [
 GITHUB_ORG_REPO = os.environ.get("GITHUB_REPOSITORY", "ORG/REPO")  # e.g., "my-org/my-repo"
 GIT_REF = os.environ.get("GITHUB_SHA", "main")
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT))              # repo root on sys.path
+sys.path.insert(0, str(REPO_ROOT / "backend"))  
 # autosummary_generate = True
 
 def _get_source_info(obj):
@@ -105,6 +107,10 @@ html_theme_options = {
 
 html_static_path = ["_static"]
 
+autodoc_mock_imports = [
+    "fastapi", "uvicorn", "sqlalchemy", "pydantic", "redis", "pymongo",
+    # add any others your backend imports but you don't want to install in CI
+]
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
