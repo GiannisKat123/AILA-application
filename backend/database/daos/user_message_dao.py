@@ -146,7 +146,7 @@ class UserMessagesDao:
             print(f"Error in UserMessagesDao.fetchMessagesByConversationId. Error Message: {e}")
             raise e
 
-    def updateMessageFeedback(self, session: Session, conversation_id: UUID, message_id: UUID, feedback: bool):
+    def updateMessageFeedback(self, session: Session, conversation_id: UUID, message_id: UUID, feedback: str):
         """
         Update feedback status of a specific message within a conversation.
 

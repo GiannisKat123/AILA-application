@@ -259,3 +259,40 @@ class ConversationDao:
         except Exception as e:
             print(f"Error in ConversationDao.updateConversationByName. Error: {e}")
             raise e
+        
+    def fetchConversationByConversationType(
+        self, session: Session, user_id: UUID, conversation_type:str
+    ):
+        """
+        Fetch conversations for a user by both user ID and conversation name.
+
+        Parameters
+        ----------
+        session : Session
+            Active SQLAlchemy session.
+        user_id : UUID
+            Unique identifier of the user.
+        conversation_name : str
+            Name of the conversation.
+
+        Returns
+        -------
+        list[Conversation]
+            List of matching conversations.
+
+        Raises
+        ------
+        Exception
+            If the query fails.
+        """
+        try:
+            conversation = (
+                session.query(Conversation)
+                .filter(Conversation.user_id == user_id)
+                .filter(Conversation.conversation_type == conversation_type)
+                .all()
+            )
+            return conversation
+        except Exception as e:
+            print(f"Error in ConversationDao.fetchConversationByConversationType. Error: {e}")
+            raise e

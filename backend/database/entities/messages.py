@@ -72,8 +72,8 @@ class UserMessage(declarativeBase):
     )
     """Role of the message sender (e.g., user, assistant, system)."""
 
-    feedback: Mapped[bool] = mapped_column(
-        Boolean, nullable=True
+    feedback: Mapped[str] = mapped_column(
+        TEXT, nullable=True
     )
     """Optional feedback flag (True = positive, False = negative, None = not set)."""
 
@@ -84,7 +84,7 @@ class UserMessage(declarativeBase):
         message: str,
         date_created_on,
         role: str,
-        feedback: bool | None = None,
+        feedback: str | None = None,
     ):
         """
         Initialize a new UserMessage object.

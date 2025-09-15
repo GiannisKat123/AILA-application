@@ -79,6 +79,7 @@ export const Register = () => {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [password_1, setNewPassword] = useState("");
+    const [role, setRole] = useState("");
     const [email, setEmail] = useState("");
     const { RegisterUser, verifyCodeUser, resendCode, user } = useAuth();
     const [errorMsg, setErrorMessage] = useState("");
@@ -198,17 +199,19 @@ export const Register = () => {
         setIsLoading(true);
         if (password === password_1) {
             try {
-                const res = await RegisterUser(username, password_1, email);
+                const res = await RegisterUser(username, password_1, email, role);
                 if (res === true) {
                     setVerified(false);
                     setPassword("");
                     setNewPassword("");
+                    setRole("");
                 }
                 else if (res && "error_message" in res) {
                     setUsername("");
                     setPassword("");
                     setNewPassword("");
                     setEmail("");
+                    setRole("");
                     setErrorMessage(res.error_message);
                     errRef.current?.focus();
                 }
@@ -217,6 +220,7 @@ export const Register = () => {
                     setPassword("");
                     setNewPassword("");
                     setEmail("");
+                    setRole("");
                     setErrorMessage("Registratiion failed. Something happened");
                     errRef.current?.focus();
                 }
@@ -225,6 +229,7 @@ export const Register = () => {
                 setUsername("");
                 setPassword("");
                 setNewPassword("");
+                setRole("");
                 setEmail("")
                 setErrorMessage(`Registratiion failed. Something happened ${err}`);
                 errRef.current?.focus();
@@ -236,6 +241,7 @@ export const Register = () => {
             setPassword("");
             setNewPassword("");
             setEmail("")
+            setRole("");
             setErrorMessage("Registration failed. Passwords do not match");
             errRef.current?.focus();
             setIsLoading(false);
@@ -418,6 +424,42 @@ export const Register = () => {
                             </ul>
 
                         </div>
+
+                        <fieldset className="space-y-2">
+                            <legend className="font-medium mb-2">Select your role</legend>
+
+                            <div className="flex items-center">
+                                <input
+                                    type="radio"
+                                    id="user"
+                                    name="role"
+                                    value="user"
+                                    required
+                                    checked={role === "user"}
+                                    onChange={(e) => setRole(e.target.value)}
+                                    className="peer"
+                                />
+                                <label htmlFor="user" className="ml-2 cursor-pointer peer-checked:font-semibold">
+                                    Normal User
+                                </label>
+                            </div>
+
+                            <div className="flex items-center">
+                                <input
+                                    type="radio"
+                                    id="lawyer"
+                                    name="role"
+                                    value="lawyer"
+                                    required
+                                    checked={role === "lawyer"}
+                                    onChange={(e) => setRole(e.target.value)}
+                                    className="peer"
+                                />
+                                <label htmlFor="lawyer" className="ml-2 cursor-pointer peer-checked:font-semibold">
+                                    Lawyer
+                                </label>
+                            </div>
+                        </fieldset>
 
                         <div className="pt-2">
                             <button

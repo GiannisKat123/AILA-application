@@ -8,6 +8,13 @@ validation and automatic OpenAPI schema generation.
 from pydantic import BaseModel
 from typing import List
 
+class DocumentFeedbackDetails(BaseModel):
+    query_id: str
+    negative_answer_id:str
+    doc_name:str
+    doc_text:str
+    context:str
+    theme:str
 
 class UserCredentials(BaseModel):
     """
@@ -26,6 +33,7 @@ class ConversationCreationDetails(BaseModel):
     """The username of the conversation owner."""
     conversation_name: str
     """A human-readable title for the conversation."""
+    conversation_type:str
 
 class UpdateConversationDetails(BaseModel):
     """
@@ -40,7 +48,7 @@ class NewMessage(BaseModel):
     """
     Represents a new message to be created in a conversation.
     """
-    feedback: bool | None
+    feedback: str | None
     """Optional feedback flag (True/False, None if unset)."""
     id: str
     """Unique identifier of the message."""
@@ -70,6 +78,8 @@ class Message(BaseModel):
     """The current message being sent."""
     conversation_history: List[dict]
     """History of previous messages in the conversation."""
+    web_search_tool: bool
+    conversation_type: str
 
 
 class UserAuthentication(BaseModel):
@@ -94,6 +104,7 @@ class UserData(BaseModel):
     """Password chosen by the user."""
     email: str
     """Email address of the user."""
+    role: str
 
 
 class VerifCode(BaseModel):
@@ -114,5 +125,5 @@ class UserFeedback(BaseModel):
     """The ID of the message being reviewed."""
     conversation_id: str
     """The conversation to which the message belongs."""
-    feedback: bool | None
+    feedback: str | None
     """Feedback value (True=positive, False=negative, None=unset)."""

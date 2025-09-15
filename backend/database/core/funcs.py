@@ -15,14 +15,17 @@ import uuid
 from backend.database.daos.user_dao import UserDao
 from backend.database.daos.conversation_dao import ConversationDao
 from backend.database.daos.user_message_dao import UserMessagesDao
+from backend.database.daos.document_feedback_dao import DocumentFeedbackDao
 from backend.crypt.encrypt_decrypt import EncryptionDec
 from backend.database.entities.messages import UserMessage
 from backend.database.entities.conversations import Conversation
 from backend.database.entities.user import User
+from backend.database.entities.document_feedback import DocumentFeedback
 from backend.api.models import UserAuthentication
 from datetime import datetime, timezone, timedelta
 from backend.database.config.config import settings
 import smtplib
+from backend.api.models import DocumentFeedbackDetails
 from email.mime.text import MIMEText
 
 
@@ -71,6 +74,7 @@ def login_user(session: Session, username: str, password: str) -> UserAuthentica
                     "username": user.user_name,
                     "email": user.email,
                     "verified": user.verified,
+                    "role":user.role
                 },
             }
         else:
@@ -82,7 +86,7 @@ def login_user(session: Session, username: str, password: str) -> UserAuthentica
 
 
 @transactional
-def check_create_user_instance(session: Session, username: str, password: str, email: str):
+def check_create_user_instance(session: Session, username: str, password: str, email: str, role:str):
     """
     Validate uniqueness, validate password policy, create a new user, and send a verification code.
 
@@ -125,7 +129,7 @@ def check_create_user_instance(session: Session, username: str, password: str, e
             user_name=username,
             password=password,
             email=email,
-            role="user",
+            role=role,
             verification_code=code,
             date_created_on=datetime.now(timezone.utc).isoformat(),
         )
@@ -249,7 +253,7 @@ def resend_ver_code(session: Session, username: str, email: str) -> None:
 
 
 @transactional
-def set_feedback(session: Session, message_id: str, conversation_id: str, feedback: bool | None = None) -> None:
+def set_feedback(session: Session, message_id: str, conversation_id: str, feedback: str | None = None) -> None:
     """
     Set feedback flag on a user message.
 
@@ -265,13 +269,21 @@ def set_feedback(session: Session, message_id: str, conversation_id: str, feedba
         Feedback value to set (True/False). Default is None.
     """
     message_dao = UserMessagesDao()
+    
+    feedback_message = feedback
+    if len(feedback) < 10 and len(feedback) !=0:
+        if 'true' in feedback_message.lower(): feedback_message = 'true'
+        elif 'false' in feedback_message.lower(): feedback_message = 'false'
+    if len(feedback) > 10:
+        pass
+
     message_dao.updateMessageFeedback(
         session=session, conversation_id=conversation_id, message_id=message_id, feedback=feedback
     )
 
 
 @transactional
-def create_conversation(session: Session, username: str, conversation_name: str):
+def create_conversation(session: Session, username: str, conversation_name: str, conversation_type:str):
     """
     Create a new conversation for a given user.
 
@@ -297,6 +309,7 @@ def create_conversation(session: Session, username: str, conversation_name: str)
     conversation = Conversation(
         conversation_id=conversation_id,
         conversation_name=conversation_name,
+        conversation_type= conversation_type,
         user_id=user.id,
         last_updated=timestamp.isoformat(),
     )
@@ -358,6 +371,7 @@ def create_message(
     conversation_dao = ConversationDao()
     user_messages_dao = UserMessagesDao()
     timestamp = datetime.now(timezone.utc)
+    timestamp1 = datetime.now()
     new_message = UserMessage(
         message_id=id,
         conversation_id=conversation_id,
@@ -367,7 +381,7 @@ def create_message(
         date_created_on=timestamp.isoformat(),
     )
     conversation_dao.updateConversationByDate(
-        session, conversation_id=conversation_id, timestamp=timestamp.isoformat()
+        session, conversation_id=conversation_id, timestamp=timestamp1.isoformat()
     )
     message = user_messages_dao.createMessage(session, new_message)
     return {
@@ -479,7 +493,27 @@ def get_conversations(session: Session, username: str) -> list[dict]:
     user_dao = UserDao()
     user = user_dao.fetchUser(session, username)[0].id
     conversations = conversation_dao.fetchConversationByUserId(session, user)
+    for conversation in conversations:
+        print(conversation.conversation_name,conversation.conversation_type,conversation.last_updated)
     return [
-        {"conversation_name": conversation.conversation_name, "conversation_id": conversation.id}
+        {"conversation_name": conversation.conversation_name, "conversation_id": conversation.id, 'conversation_type':conversation.conversation_type}
         for conversation in conversations
     ]
+
+
+@transactional
+def create_document_feedback(session:Session, data:DocumentFeedbackDetails):
+    document_feedback_dao = DocumentFeedbackDao()
+    timestamp = datetime.now(timezone.utc)
+    document_feedback = DocumentFeedback(
+        doc_id = uuid.uuid4(),
+        query_id = data.query_id,
+        negative_answer_id= data.negative_answer_id,
+        doc_name = data.doc_name,
+        doc_text = data.doc_text,
+        context=data.context,
+        theme = data.theme,
+        date_created=timestamp.isoformat()
+    )
+    document_feedback_dao.createDocument(session,document_feedback)
+

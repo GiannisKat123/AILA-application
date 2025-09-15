@@ -60,9 +60,14 @@ class Conversation(declarativeBase):
     last_updated: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime.now(timezone.utc)
     )
+
+    conversation_type: Mapped[str] = mapped_column(
+            TEXT, nullable=True
+    )
+
     """Timestamp when the conversation was last updated. Defaults to now (UTC)."""
 
-    def __init__(self, conversation_id: UUID, conversation_name: str, user_id: UUID, last_updated):
+    def __init__(self, conversation_id: UUID, conversation_name: str, user_id: UUID, last_updated, conversation_type:str):
         """
         Initialize a new Conversation object.
 
@@ -80,6 +85,7 @@ class Conversation(declarativeBase):
         self.id = conversation_id
         self.conversation_name = conversation_name
         self.user_id = user_id
+        self.conversation_type = conversation_type
         if isinstance(last_updated, str):
             self.last_updated = datetime.fromisoformat(last_updated)
         else:

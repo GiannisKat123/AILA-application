@@ -58,6 +58,7 @@ import {
     createConversationAPI,
     createMessageAPI,
     getConversationsAPI,
+    createDocumentFeedbackAPI
 } from '../services/AuthService.jsx';
 import type {
     LoginAPIOutput,
@@ -82,9 +83,9 @@ export interface AuthContextType {
     /** Loading state while verifying session. */
     loading: boolean;
     /** Create a new conversation. */
-    createConversation: (conversation_name: string, username: string) => Promise<Conversations | undefined>;
+    createConversation: (conversation_name: string, username: string, conversation_type:string) => Promise<Conversations | undefined>;
     /** Create a new message in a conversation. */
-    createMessage: (conversation_id: string, text: string, role: string, id: string, feedback: boolean | null) => Promise<void>;
+    createMessage: (conversation_id: string, text: string, role: string, id: string, feedback: string | null) => Promise<void>;
     /** Fetch all messages for a conversation. */
     fetchUserMessages: (conversation_id: string) => Promise<void>;
     /** Login a user. */
@@ -94,15 +95,17 @@ export interface AuthContextType {
     /** Fetch all conversations for the user. */
     fetchConversations: (username: string) => Promise<void>;
     /** Register a new user. */
-    RegisterUser: (username: string, password: string, email: string) => Promise<boolean | ErrorMessage>;
+    RegisterUser: (username: string, password: string, email: string, role: string) => Promise<boolean | ErrorMessage>;
     /** Verify a user with a code. */
     verifyCodeUser: (username: string, code: string) => Promise<boolean | ErrorMessage>;
     /** Resend a verification code. */
     resendCode: (username: string, email: string) => Promise<void>;
     /** Submit feedback on a message. */
-    userFeedback: (message_id: string, conversation_id: string, feedback: boolean) => Promise<void>;
+    userFeedback: (message_id: string, conversation_id: string, feedback: string) => Promise<void>;
     /** Rename a conversation. */
     renameConversation: (conversation_name: string, conversation_id: string) => Promise<void | ErrorMessage>;
+
+    createDocumentFeedback: (query_id: string, negative_answer_id: string, doc_name: string, document_text: string, context: string, theme: string) => Promise<void | ErrorMessage>;
 }
 
 
@@ -143,11 +146,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
      * param email string – user’s email
      * returns Promise<boolean | ErrorMessage> – true if successful, otherwise error object
      */
-    const RegisterUser = async (username: string, password: string, email: string): Promise<boolean | ErrorMessage> => {
+    const RegisterUser = async (username: string, password: string, email: string, role:string): Promise<boolean | ErrorMessage> => {
         try {
-            const res = await registerAPI(username, password, email);
+            const res = await registerAPI(username, password, email, role);
             if (res && res === true) {
-                setUser({ username: username, email: email, verified: false })
+                setUser({ username: username, email: email, verified: false, role: role })
                 return true;
             }
             else if (res && typeof res === 'object' && 'error_message' in res) {
@@ -223,7 +226,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
      * param feedback boolean | undefined – true/false/null
      * returns void – throws error if backend rejects
      */
-    const userFeedback = async (message_id: string, conversation_id: string, feedback: boolean | undefined): Promise<void> => {
+    const userFeedback = async (message_id: string, conversation_id: string, feedback: string | undefined): Promise<void> => {
         try {
             const res = await userFeedbackAPI(message_id, conversation_id, feedback);
             if (res) {
@@ -240,7 +243,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }
 
-
     /**
    * Login user
    * param username string
@@ -253,7 +255,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         try {
             const res = await loginAPI(username, password);
             if (res && typeof res === 'object' && "user_details" in res) {
-                setUser({ username: res.user_details.username, email: res.user_details.email, verified: res.user_details.verified })
+                setUser({ username: res.user_details.username, email: res.user_details.email, verified: res.user_details.verified, role: res.user_details.role })
                 return res;
             }
             else if (res && typeof res === 'object' && "error_message" in res) {
@@ -278,9 +280,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
      * returns Promise<Conversations | undefined>
      * - Updates state with new conversation if successful
      */
-    const createConversation = async (conversation_name: string, username: string): Promise<Conversations | undefined> => {
+    const createConversation = async (conversation_name: string, username: string,conversation_type:string): Promise<Conversations | undefined> => {
         try {
-            const res = await createConversationAPI(conversation_name, username);
+            const res = await createConversationAPI(conversation_name, username, conversation_type);
             if (res) {
                 setConversations(prev => [res, ...prev]);
                 return res;
@@ -291,6 +293,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
         catch (err) {
             console.error(`Could not create new Conversation with name:${conversation_name}. Error:`, err);
+        }
+    }
+
+
+    const createDocumentFeedback = async (query_id: string, negative_answer_id: string, doc_name: string, document_text: string, context: string, theme: string): Promise<void | ErrorMessage> => {
+        try {
+            const res = await createDocumentFeedbackAPI(query_id, negative_answer_id, doc_name, document_text, context, theme,);
+            if (res) {
+                return;
+            }
+            else {
+                throw new Error("Conversation was not created properly");
+            }
+        }
+        catch (err) {
+            console.error(`Could not create new Document Feedback on Message:${query_id}. Error:`, err);
         }
     }
 
@@ -320,7 +338,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
    * param feedback boolean | null – initial feedback (optional)
    * returns Promise<void> – appends message to state
    */
-    const createMessage = async (conversation_id: string, text: string, role: string, id: string, feedback: boolean | null) => {
+    const createMessage = async (conversation_id: string, text: string, role: string, id: string, feedback: string | null) => {
         try {
             const res = await createMessageAPI(conversation_id, text, role, id, feedback);
             const newMessage = { conversation_id, message: text, role, id, feedback, timestamp: new Date().toISOString() };
@@ -431,7 +449,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }, [])
 
     return (
-        <AuthContext.Provider value={{ user, userMessages, renameConversation, userFeedback, resendCode, verifyCodeUser, RegisterUser, loginUser, logoutUser, fetchUserMessages, loading, conversations, createConversation, createMessage, fetchConversations }}>
+        <AuthContext.Provider value={{ user, userMessages, createDocumentFeedback, renameConversation, userFeedback, resendCode, verifyCodeUser, RegisterUser, loginUser, logoutUser, fetchUserMessages, loading, conversations, createConversation, createMessage, fetchConversations }}>
             {children}
         </AuthContext.Provider>
     )

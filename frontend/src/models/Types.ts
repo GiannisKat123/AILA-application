@@ -24,6 +24,7 @@ export type UserProfile = {
   username: string;
   email: string;
   verified: boolean | null;
+  role: string | null;
 };
 
 /**
@@ -39,7 +40,7 @@ export type UserProfile = {
 * @property role - Sender role ("user" | "assistant").
 */
 export type Message = {
-  feedback: boolean | null;
+  feedback: string | null;
   id: string;
   message: string;
   timestamp: string;
@@ -64,6 +65,7 @@ export type LoginAPIOutput = {
 export type Conversations = {
   conversation_name: string;
   conversation_id: string;
+  conversation_type: string;
 };
 
 /**

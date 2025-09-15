@@ -116,9 +116,9 @@ const renameConversationAPI = async (conversation_name: string, conversation_id:
  *  - On success: `true`
  *  - On failure: `{ error_message: string }`
  */
-const registerAPI = async (username: string, password: string, email: string): Promise<boolean | ErrorMessage> => {
+const registerAPI = async (username: string, password: string, email: string, role:string): Promise<boolean | ErrorMessage> => {
     try {
-        const response = await api.post('/register', { username: username, password: password, email: email }, { withCredentials: true });
+        const response = await api.post('/register', { username: username, password: password, email: email, role: role }, { withCredentials: true });
         return response.data;
     }
     catch (err) {
@@ -193,7 +193,7 @@ const resendCodeAPI = async (username: string, email: string): Promise<boolean |
  *  - On success: `true`
  *  - On failure: `undefined` (and logs error)
  */
-const userFeedbackAPI = async (message_id: string, conversation_id: string, feedback: boolean | undefined): Promise<boolean | undefined> => {
+const userFeedbackAPI = async (message_id: string, conversation_id: string, feedback: string | undefined): Promise<boolean | undefined> => {
     try {
         await api.post('/user_feedback', { message_id: message_id, conversation_id: conversation_id, feedback: feedback }, { withCredentials: true })
         return true;
@@ -216,9 +216,24 @@ const userFeedbackAPI = async (message_id: string, conversation_id: string, feed
  *  - On success: `{ conversation_id, conversation_name }`
  *  - On failure: `undefined` (and logs error)
  */
-const createConversationAPI = async (conversation_name: string, username: string): Promise<Conversations | undefined> => {
+const createConversationAPI = async (conversation_name: string, username: string, conversation_type: string): Promise<Conversations | undefined> => {
     try {
-        const response = await api.post('/new_conversation', { conversation_name: conversation_name, username: username }, { withCredentials: true })
+        const response = await api.post('/new_conversation', { conversation_name: conversation_name, username: username, conversation_type: conversation_type }, { withCredentials: true })
+        return response.data;
+    }
+    catch (err) {
+        if (err instanceof Error) {
+            console.error(err.message);
+        } else {
+            console.error(err);
+        }
+    }
+}
+
+const createDocumentFeedbackAPI = async (query_id: string, negative_answer_id: string, doc_name: string, document_text: string, context: string, theme: string): Promise<boolean | undefined> => {
+    try {
+        console.log({ query_id: query_id, negative_answer_id: negative_answer_id, doc_name: doc_name, document_text: document_text, context: context, theme: theme })
+        const response = await api.post('/new_document_feedback', { query_id: query_id, negative_answer_id: negative_answer_id, doc_name: doc_name, doc_text: document_text, context: context, theme: theme }, { withCredentials: true })
         return response.data;
     }
     catch (err) {
@@ -242,7 +257,7 @@ const createConversationAPI = async (conversation_name: string, username: string
  *  - On success: `Message`
  *  - On failure: `undefined` (and logs error)
  */
-const createMessageAPI = async (conversation_id: string, text: string, role: string, id: string, feedback: boolean | null): Promise<Message | undefined> => {
+const createMessageAPI = async (conversation_id: string, text: string, role: string, id: string, feedback: string | null): Promise<Message | undefined> => {
     try {
         const response = await api.post('/new_message', { conversation_id: conversation_id, text: text, role: role, id: id, feedback: feedback }, { withCredentials: true });
         return response.data
@@ -352,5 +367,5 @@ const logoutAPI = async (): Promise<boolean | undefined> => {
 
 }
 
-export { loginAPI, getUserMessagesAPI, userFeedbackAPI, resendCodeAPI, verifyAPI, renameConversationAPI, logoutAPI, registerAPI, requestAPI, verifyUser, createConversationAPI, createMessageAPI, getConversationsAPI };
+export { loginAPI, getUserMessagesAPI, createDocumentFeedbackAPI, userFeedbackAPI, resendCodeAPI, verifyAPI, renameConversationAPI, logoutAPI, registerAPI, requestAPI, verifyUser, createConversationAPI, createMessageAPI, getConversationsAPI };
 
