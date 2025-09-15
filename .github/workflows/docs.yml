@@ -65,7 +65,7 @@ jobs:
       - name: Copy frontend API docs into Sphinx source
         run: |
           rm -rf new_docs/source/frontend/api
-          cp -r frontend/new_docs/api new_docs/source/frontend/api
+          cp -r frontend/docs/api new_docs/source/frontend/api
 
       - name: Build Sphinx HTML
         working-directory: new_docs
