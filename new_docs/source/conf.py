@@ -20,7 +20,7 @@ extensions = [
     "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",  # Google/NumPy docstrings
     "sphinx.ext.viewcode",  # Source links
-    "sphinx.ext.intersphinx"
+    "sphinx.ext.intersphinx",
     "sphinx.ext.linkcode",   # <-- add this,
 ]
 
