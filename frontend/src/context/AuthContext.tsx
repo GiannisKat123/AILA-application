@@ -1,48 +1,64 @@
 /**
  * @packageDocumentation
  *
- *  Provides global authentication and user data management across the React app.
+ * Auth Context (Global) — Login • Sessions • Conversations • Messages • Feedback
+ * ============================================================================
+ * A single source of truth for authentication and chat state across your React app.
+ * Centralizes user lifecycle (login/register/verify/logout), conversation/message
+ * management, and feedback submission—so every component may acknowledge the
+ * **Head of the Table** through `useAuth()`.
  *
- * Core Responsibilities:
- * ----------------------
- * 1. Authentication lifecycle:
+ * Responsibilities
+ * ----------------
+ * 1) Authentication lifecycle
  *    - login, logout, register
- *    - verify user sessions with backend
+ *    - verify session on app load (`verifyUser`)
  *    - resend verification codes
  *
- * 2. User state management:
- *    - Tracks current logged-in user (`user`)
- *    - Maintains user's conversations (`conversations`)
- *    - Maintains messages in active conversation (`userMessages`)
+ * 2) User state management
+ *    - `user`: current profile or `null`
+ *    - `conversations`: user's conversations
+ *    - `userMessages`: messages of the active conversation
  *
- * 3. Conversation + Message features:
- *    - Create and rename conversations
- *    - Fetch user conversations
- *    - Create new messages
- *    - Fetch user messages
- *    - Submit feedback on messages
+ * 3) Conversation + Message features
+ *    - Create/rename conversations
+ *    - Create messages
+ *    - Fetch conversations and messages
+ *    - Submit thumbs feedback
+ *    - Create document feedback (links bad answers to source docs)
  *
- * 4. Context Hook:
- *    - `useAuth()` to access user state and actions
+ * 4) Context Hook
+ *    - `useAuth()` for state + actions
  *
- * Integration:
- * ------------
- * Wrap your app in the `AuthProvider` so child components can
- * consume authentication context via `useAuth()`.
+ * Integration
+ * -----------
+ * Wrap your app in `<AuthProvider>` and consume the context anywhere via `useAuth()`.
  *
-* 
-* @remarks
-* Provides global authentication and user data management across the React app.
-*
-* @example
-* ```tsx
-*   <AuthProvider>
-*     <App />
-*   </AuthProvider>
-*
-*   const { user, loginUser, logoutUser } = useAuth();
-* ```
-*/
+ * Security & Networking
+ * ---------------------
+ * - Uses Axios with `withCredentials: true` (JWT cookie).
+ * - Backend must set `Access-Control-Allow-Credentials: true` and a specific
+ *   `Access-Control-Allow-Origin` (no `*`) to allow cookie-based auth in browsers.
+ *
+ * Error Handling Contract
+ * -----------------------
+ * - Many actions resolve to `void | ErrorMessage` or `boolean | ErrorMessage`.
+ * - On failures, some actions clear `user` to reflect invalid session.
+ * - Callers should handle returned `ErrorMessage` and surface UX to the user.
+ *
+ * Examples
+ * --------
+ * ```tsx
+ * <AuthProvider>
+ *   <App />
+ * </AuthProvider>
+ *
+ * const { user, loginUser, fetchConversations, createMessage } = useAuth()
+ * await loginUser('roman', 'acknowledge-me')
+ * await fetchConversations(user!.username)
+ * await createMessage(convId, 'Hello, court.', 'user', crypto.randomUUID(), null)
+ * ```
+ */
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import {
@@ -70,8 +86,12 @@ import type {
 
 
 /**
- * Shape of the AuthContext — defines all state + actions
- * 
+ * Shape of the AuthContext — defines all state + actions.
+ *
+ * @remarks
+ * Consumers get strongly-typed helpers for auth + chat operations.
+ * Many actions return either `void`/`boolean` or an {@link ErrorMessage}
+ * so components can display precise error toasts/UI.
  */
 export interface AuthContextType {
     /** Current logged-in user, or `null` if unauthenticated. */
@@ -80,31 +100,46 @@ export interface AuthContextType {
     userMessages: Message[] | null;
     /** List of all conversations for the user. */
     conversations: Conversations[] | null;
-    /** Loading state while verifying session. */
+    /** Loading state while verifying session on mount. */
     loading: boolean;
-    /** Create a new conversation. */
+
+    /** Create a new conversation (supports `conversation_type` e.g., "normal" | "lawsuit"). */
     createConversation: (conversation_name: string, username: string, conversation_type:string) => Promise<Conversations | undefined>;
-    /** Create a new message in a conversation. */
+
+    /** Create a new message in a conversation (client also appends to local state). */
     createMessage: (conversation_id: string, text: string, role: string, id: string, feedback: string | null) => Promise<void>;
-    /** Fetch all messages for a conversation. */
+
+    /** Fetch all messages for a conversation and hydrate `userMessages`. */
     fetchUserMessages: (conversation_id: string) => Promise<void>;
-    /** Login a user. */
+
+    /** Login a user (sets HttpOnly cookie server-side; hydrates `user`). */
     loginUser(username: string, password: string): Promise<LoginAPIOutput | ErrorMessage | null>;
-    /** Logout the current user. */
+
+    /** Logout the current user (clears cookie server-side and local state). */
     logoutUser: () => Promise<void>;
-    /** Fetch all conversations for the user. */
+
+    /** Fetch all conversations for a user and hydrate `conversations`. */
     fetchConversations: (username: string) => Promise<void>;
-    /** Register a new user. */
+
+    /** Register a new user (updates `user` on success with `verified: false`). */
     RegisterUser: (username: string, password: string, email: string, role: string) => Promise<boolean | ErrorMessage>;
-    /** Verify a user with a code. */
+
+    /** Verify a user with a code sent via email. */
     verifyCodeUser: (username: string, code: string) => Promise<boolean | ErrorMessage>;
-    /** Resend a verification code. */
+
+    /** Resend a verification code to the user's email. */
     resendCode: (username: string, email: string) => Promise<void>;
-    /** Submit feedback on a message. */
+
+    /** Submit thumbs feedback on a message (True/False/None as string). */
     userFeedback: (message_id: string, conversation_id: string, feedback: string) => Promise<void>;
-    /** Rename a conversation. */
+
+    /** Rename a conversation by ID. */
     renameConversation: (conversation_name: string, conversation_id: string) => Promise<void | ErrorMessage>;
 
+    /**
+     * Create a document feedback record linking a query and a negatively rated answer
+     * to a specific document/context (improves evaluation + reranking).
+     */
     createDocumentFeedback: (query_id: string, negative_answer_id: string, doc_name: string, document_text: string, context: string, theme: string) => Promise<void | ErrorMessage>;
 }
 
@@ -112,25 +147,17 @@ export interface AuthContextType {
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 /**
- * Provides the authentication context and state to all child components.
+ * AuthProvider — supplies authentication + chat state/actions to child components.
  *
  * @remarks
- * - Should wrap your entire application (usually in `main.tsx` or `index.tsx`).
- * - Exposes authentication and conversation state/actions via {@link useAuth}.
- *
- * @param children - React component tree to be wrapped by the provider.
- * @returns A React context provider that supplies {@link AuthContextType} to its children.
+ * - Wrap the entire app near the root.
+ * - Performs session verification on mount (`verifyUser`) to hydrate `user`.
+ * - Exposes all actions via {@link useAuth}.
  *
  * @example
  * ```tsx
  * import { AuthProvider } from "./context/AuthContext";
- *
- * const root = createRoot(document.getElementById("root")!);
- * root.render(
- *   <AuthProvider>
- *     <App />
- *   </AuthProvider>
- * );
+ * root.render(<AuthProvider><App /></AuthProvider>);
  * ```
  */
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -140,11 +167,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [loading, setLoading] = useState(true);
 
     /**
-     * Register a new user
-     * param username string – desired username
-     * param password string – plaintext password (validated backend-side)
-     * param email string – user’s email
-     * returns Promise<boolean | ErrorMessage> – true if successful, otherwise error object
+     * Register a new user.
+     *
+     * @param username - desired username
+     * @param password - plaintext password (validated server-side)
+     * @param email - user's email
+     * @param role - user role (e.g., "user", "admin")
+     * @returns `true` on success; otherwise {@link ErrorMessage}
      */
     const RegisterUser = async (username: string, password: string, email: string, role:string): Promise<boolean | ErrorMessage> => {
         try {
@@ -170,10 +199,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
 
     /**
-     * Verify user with a code sent to their email
-     * param username string – username of the account
-     * param code string – verification code provided via email
-     * returns Promise<boolean | ErrorMessage>
+     * Verify user with a code sent to their email.
+     *
+     * @param username - account username
+     * @param code - verification code (string)
+     * @returns `true` on success; otherwise {@link ErrorMessage}
      */
     const verifyCodeUser = async (username: string, code: string): Promise<boolean | ErrorMessage> => {
         try {
@@ -196,10 +226,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     /**
-     * Resend verification code
-     * param username string
-     * param email string
-     * returns void – throws error if resend fails
+     * Resend verification code to user's email.
+     *
+     * @param username - account username
+     * @param email - address to receive the code
+     * @throws Error if the backend rejects the request
      */
     const resendCode = async (username: string, email: string): Promise<void> => {
         try {
@@ -220,11 +251,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
 
     /**
-     * Submit user feedback for a message
-     * param message_id string
-     * param conversation_id string
-     * param feedback boolean | undefined – true/false/null
-     * returns void – throws error if backend rejects
+     * Submit thumbs feedback for a message.
+     *
+     * @param message_id - message identifier
+     * @param conversation_id - parent conversation id
+     * @param feedback - "true" | "false" | "null" (string-encoded)
+     * @throws Error if backend rejects request
      */
     const userFeedback = async (message_id: string, conversation_id: string, feedback: string | undefined): Promise<void> => {
         try {
@@ -244,13 +276,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     /**
-   * Login user
-   * param username string
-   * param password string
-   * returns Promise<LoginAPIOutput | ErrorMessage>
-   * - On success: updates `user` state
-   * - On failure: clears `user` state and returns error
-   */
+     * Login user and hydrate `user` state.
+     *
+     * @param username - account username
+     * @param password - plaintext password
+     * @returns On success: {@link LoginAPIOutput}; on failure: {@link ErrorMessage}
+     */
     const loginUser = async (username: string, password: string): Promise<LoginAPIOutput | ErrorMessage> => {
         try {
             const res = await loginAPI(username, password);
@@ -274,11 +305,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     /**
-     * Create a new conversation
-     * param conversation_name string
-     * param username string
-     * returns Promise<Conversations | undefined>
-     * - Updates state with new conversation if successful
+     * Create a new conversation (e.g., "normal" | "lawsuit").
+     *
+     * @param conversation_name - title shown in UI
+     * @param username - owner username
+     * @param conversation_type - server-side flow selector
+     * @returns The created conversation or `undefined` on error
      */
     const createConversation = async (conversation_name: string, username: string,conversation_type:string): Promise<Conversations | undefined> => {
         try {
@@ -296,7 +328,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }
 
-
+    /**
+     * Create a document feedback record (query → negative answer → document).
+     *
+     * @param query_id - originating query message id
+     * @param negative_answer_id - answer message that was downvoted
+     * @param doc_name - document title
+     * @param document_text - offending passage or text
+     * @param context - retrieval context shown with the answer
+     * @param theme - category tag (e.g., "GDPR", "Greek Penal Code")
+     * @returns void on success; {@link ErrorMessage} on failure
+     */
     const createDocumentFeedback = async (query_id: string, negative_answer_id: string, doc_name: string, document_text: string, context: string, theme: string): Promise<void | ErrorMessage> => {
         try {
             const res = await createDocumentFeedbackAPI(query_id, negative_answer_id, doc_name, document_text, context, theme,);
@@ -313,9 +355,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     /**
-     * Fetch all conversations for a user
-     * param username string
-     * returns Promise<void> – updates `conversations` state
+     * Fetch all conversations for the given user and hydrate state.
+     *
+     * @param username - owner username
      */
     const fetchConversations = async (username: string) => {
         try {
@@ -330,14 +372,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     /**
-   * Create a new message inside a conversation
-   * param conversation_id string
-   * param text string – message content
-   * param role string – sender role ("user" | "assistant")
-   * param id string – UUID for message
-   * param feedback boolean | null – initial feedback (optional)
-   * returns Promise<void> – appends message to state
-   */
+     * Create a new message inside a conversation and append locally.
+     *
+     * @param conversation_id - parent conversation
+     * @param text - message content
+     * @param role - "user" | "assistant"
+     * @param id - UUID for the message (client-generated)
+     * @param feedback - initial feedback marker (string or null)
+     */
     const createMessage = async (conversation_id: string, text: string, role: string, id: string, feedback: string | null) => {
         try {
             const res = await createMessageAPI(conversation_id, text, role, id, feedback);
@@ -355,10 +397,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     /**
-   * Fetch all messages for a conversation
-   * param conversation_id string
-   * returns Promise<void> – sets `userMessages` state
-   */
+     * Fetch all messages for a conversation and hydrate `userMessages`.
+     *
+     * @param conversation_id - parent conversation
+     */
     const fetchUserMessages = async (conversation_id: string) => {
         try {
             const messages = await getUserMessagesAPI(conversation_id);
@@ -376,10 +418,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     /**
-   * Logout the user
-   * - Clears cookies via backend
-   * - Clears user + message state
-   */
+     * Logout the user.
+     *
+     * - Clears server cookie via `logoutAPI()`
+     * - Clears local `user` and `userMessages`
+     */
     const logoutUser = async () => {
         try {
             const res = await logoutAPI();
@@ -401,11 +444,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     /**
-   * Rename an existing conversation
-   * param conversation_id string
-   * param conversation_name string
-   * returns void | ErrorMessage
-   */
+     * Rename an existing conversation.
+     *
+     * @param conversation_id - target id
+     * @param conversation_name - new title
+     * @returns `void` on success or {@link ErrorMessage} on failure
+     */
     const renameConversation = async (conversation_id: string, conversation_name: string): Promise<void | ErrorMessage> => {
         try {
             // console.log("Renaming Conversation", conversation_name, conversation_id);
@@ -426,9 +470,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     /**
-     * On mount: verify if a session exists with backend.
-     * If valid → hydrate user state
-     * If invalid → clear user
+     * On mount: verify existing session with backend and hydrate `user`.
+     *
+     * Behavior:
+     * - Calls `verifyUser()` (reads server-side cookie).
+     * - Sets `user` if valid; clears otherwise.
+     * - Always clears `loading` at the end.
      */
     useEffect(() => {
         const initialize = async () => {
@@ -457,18 +504,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 }
 
 /**
-* Hook to access {@link AuthContextType}.
-*
-* @remarks
-* Must be used within an {@link AuthProvider}. Throws an error otherwise.
-*
-* @returns The current authentication context.
-*
-* @example
-* ```tsx
-* const { user, loginUser, logoutUser } = useAuth();
-* ```
-*/
+ * Hook to access {@link AuthContextType} anywhere in the tree.
+ *
+ * @remarks
+ * Must be used within an {@link AuthProvider}. Throws a descriptive error otherwise.
+ *
+ * @example
+ * ```tsx
+ * const { user, loginUser, logoutUser, fetchConversations } = useAuth();
+ * ```
+ */
 export const useAuth = (): AuthContextType => {
     const context = useContext(AuthContext);
     if (context === undefined) {

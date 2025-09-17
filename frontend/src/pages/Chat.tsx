@@ -1,3 +1,54 @@
+/**
+ * @packageDocumentation
+ *
+ * Chat Page — Conversations • Streaming • Evidence Upload • Feedback
+ * ================================================================
+ * AILA’s main chat surface. Manages conversation lifecycle, streams assistant
+ * responses via SSE, supports “lawsuit” evidence uploads, and collects
+ * message/document feedback for evaluation.
+ *
+ * Core Features
+ * -------------
+ * - Conversation lifecycle:
+ *   • Create “normal” or “lawsuit” conversations
+ *   • Rename conversations (inline)
+ *   • Sidebar navigation for existing conversations
+ *
+ * - Messaging:
+ *   • Client-optimistic message append
+ *   • Server-Sent Events (SSE) streaming for assistant replies
+ *   • Persist messages after stream completes
+ *
+ * - Modes:
+ *   • "normal": toggle Online (web) vs RAG mode
+ *   • "lawsuit": intake + evidence file uploads
+ *
+ * - Feedback:
+ *   • User thumbs (👍/👎)
+ *   • Lawyer feedback form with theme, context, and source document
+ *   • Extracts text from PDF/DOCX/TXT to send with feedback
+ *
+ * File Handling
+ * -------------
+ * - PDF: `pdfjs-dist` (text extraction in worker)
+ * - DOCX: `mammoth` (raw text)
+ * - TXT: browser File API
+ *
+ * Streaming Protocol
+ * ------------------
+ * - Expects `text/event-stream` whose chunks look like:
+ *   `data: {"response":"...partial text...","status":200}\n\n`
+ * - The last assistant message is updated progressively; cursor animates while streaming.
+ *
+ * Accessibility
+ * -------------
+ * - Buttons use `aria-pressed` where applicable
+ * - Streaming spinner has `aria-live="polite"`
+ *
+ * @remarks
+ * Depends on {@link useAuth} for auth and server calls.
+ */
+
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { v4 as uuidv4 } from 'uuid';
@@ -12,7 +63,27 @@ import workerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
 
-
+/**
+ * Chat component (root of the chat UI).
+ *
+ * Responsibilities:
+ * - Bootstraps initial conversation and messages (from {@link useAuth})
+ * - Manages SSE streaming loop and optimistic UI for messages
+ * - Handles evidence file uploads (lawsuit mode only)
+ * - Coordinates thumbs and lawyer feedback flows
+ *
+ * State Overview:
+ * - `messages`: local rendering list (synced from `userMessages`)
+ * - `currentConversation`: selected conversation (id/name/type)
+ * - `isStreaming`: whether an assistant response is in-flight
+ * - `isOnline`: “normal” mode toggle for web search vs RAG
+ * - Feedback modal: `open`, `theme`, `fileDoc`, `context`, `generalFeedback`
+ * - Uploads: `uploadedFiles` (multi-file)
+ *
+ * Navigation:
+ * - Sidebar for conversation selection + inline rename
+ * - Mobile-friendly header/overlay
+ */
 const Chat = () => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [userQuery, setUserQuery] = useState('');
@@ -110,6 +181,13 @@ const Chat = () => {
         }
     }, [open, messageFeedbackDetails]);
 
+    /**
+     * Parse and extract readable text from a PDF File using pdf.js.
+     *
+     * @param file - PDF file from user input
+     * @returns Full text extracted from all pages
+     * @throws Propagates errors from pdf.js loader/extractor
+     */
     const handlePdfFile = async (file: File): Promise<string> => {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -140,6 +218,13 @@ const Chat = () => {
         });
     };
 
+    /**
+     * Parse and extract readable text from a PDF File using pdf.js.
+     *
+     * @param file - PDF file from user input
+     * @returns Full text extracted from all pages
+     * @throws Propagates errors from pdf.js loader/extractor
+     */
     const handleDocxFile = async (file: File): Promise<string> => {
         // No FileReader circus—use the File API directly
         const arrayBuffer = await file.arrayBuffer();
@@ -147,6 +232,9 @@ const Chat = () => {
         return text; // all the text, acknowledging the Tribal Chief
     };
 
+    /**
+     * Append selected files to `uploadedFiles` and reset input value so the same file can be re-chosen.
+     */
     function onSelect(e: React.ChangeEvent<HTMLInputElement>) {
         const selected = Array.from(e.target.files ?? []);
         if (selected.length > 0) {
@@ -155,10 +243,23 @@ const Chat = () => {
         e.target.value = "";
     }
 
+    /**
+     * Programmatically open the hidden `<input type="file" />` for lawsuit uploads.
+     */
     function openFileDialog() {
         inputRef.current?.click();
     }
 
+    /**
+     * Submit the lawyer feedback form:
+     * - Gathers general feedback + theme + context
+     * - Reads and normalizes the uploaded source document (pdf/docx/txt)
+     * - Sends thumbs feedback on the specific assistant message
+     * - Creates a persistent DocumentFeedback record (query→negativeAnswer→document)
+     *
+     * UX:
+     * - Closes the modal on success
+     */
     const handleFeedbackSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const feedback = await handleFeedback();
@@ -167,6 +268,15 @@ const Chat = () => {
         setFeedbackFormOpen(false);
     }
 
+    /**
+     * Build the payload for a feedback submission.
+     *
+     * @returns Object with:
+     *  - g_feedback: freeform general feedback
+     *  - document_text: extracted text of uploaded file or empty string
+     *  - query_id / negative_answer_id: message linkage
+     *  - doc_name / context / theme
+     */
     const handleFeedback = async () => {
         const document_name = fileDoc ? fileDoc.name : null;
         const query_id = messageFeedbackDetails['query_id'];
@@ -197,6 +307,25 @@ const Chat = () => {
         }
     }
 
+    /**
+     * Send a user message and stream assistant response via Server-Sent Events (SSE).
+     *
+     * Behavior:
+     * - Creates conversation if none selected (defaults to "normal")
+     * - Optimistically appends user + placeholder assistant message
+     * - Builds multipart FormData with:
+     *   - message, conversation_type, web_search_tool, conversation_history, conversation_id
+     *   - files[] (if lawsuit mode with uploads)
+     * - Opens a `fetch` with `credentials: "include"` and reads streamed chunks
+     * - Each chunk: JSON from lines starting with `data: `
+     *   - Accumulates `response` text into the last assistant message
+     * - On completion:
+     *   - Persists both user and assistant messages via `createMessage`
+     *   - Refreshes messages from server
+     *
+     * Errors:
+     * - Displays a top-level error string if streaming fails
+     */
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const userMessage = userQuery.trim();
@@ -318,6 +447,12 @@ const Chat = () => {
         }
     };
 
+    /**
+     * Auto-post an assistant onboarding message when a new 'lawsuit' conversation is created.
+     *
+     * @param conversation_id - target conversation
+     * @param conversation_type - "lawsuit" to trigger onboarding text
+     */
     const createAutomatedBotMessage = async (conversation_id: string | undefined, conversation_type: string) => {
         var fullBotResponse = "";
         if (conversation_type === 'lawsuit') {
@@ -345,6 +480,14 @@ const Chat = () => {
         }
     }
 
+    /**
+     * Submit thumbs feedback for a single assistant message and update local UI.
+     *
+     * @param message_index - message id (assistant message)
+     * @param conversation_id - current conversation id
+     * @param feedback - "true" | "false"
+     * @param e - optional event to prevent default
+     */
     const handleUserFeedback = async (
         message_index: string,
         conversation_id: string,
@@ -365,6 +508,10 @@ const Chat = () => {
         }
     }
 
+    /**
+     * Rename the current conversation (inline edit in sidebar), persists via API, and
+     * updates local list in place.
+     */
     const handleRename = async (conversationId: string) => {
         if (!editedTitle.trim()) {
             setEditingConvId('');
@@ -404,6 +551,14 @@ const Chat = () => {
     //     }
     // };
 
+    /**
+     * Create a new conversation of the given type ("normal" | "lawsuit"):
+     * - Sets it as current
+     * - Clears local messages
+     * - For "lawsuit": posts a guidance message
+     * - Refreshes conversation/messaging lists
+     * - Closes the sidebar on mobile
+     */
     const createNewConversation = async (conversation_type: string) => {
         if (!user) return;
 
@@ -430,12 +585,17 @@ const Chat = () => {
         }
     };
 
-
+    /**
+     * Switch to a conversation and hydrate messages.
+     */
     const getMessagesFromConversations = async (conversation_id: string, conversation_name: string, conversation_type: string) => {
         setCurrentConversation({ conversation_id: conversation_id, conversation_name: conversation_name, conversation_type: conversation_type });
         await fetchUserMessages(conversation_id);
     };
 
+    /**
+     * Send on Enter, newline on Shift+Enter; autogrows the textarea.
+     */
     const handleTextareaKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -444,6 +604,13 @@ const Chat = () => {
             }
         }
     };
+
+    /**
+     * Logout the current user:
+     * - Clears session cookie server-side
+     * - Resets local auth and message state
+     * - Navigates to `/login`
+     */
     const logoutButton = async () => {
         await logoutUser();
         navigate('/login');
