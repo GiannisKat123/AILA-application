@@ -198,11 +198,11 @@ html_show_sourcelink = True
 # ── AutoAPI (Python backend) ────────────────────────────────────────────────
 autoapi_type = "python"
 autoapi_dirs = ["../../backend"]
-autoapi_add_toctree_entry = True
+autoapi_add_toctree_entry = False
 add_module_names = False
 autoapi_keep_files = True
 autoapi_python_use_implicit_namespaces = True
-autoapi_root = "backend"
+autoapi_root = "backend_api"
 autoapi_options = [
     "members",
     "undoc-members",

@@ -1,4 +1,34 @@
-# config.py  — Pydantic v2 & pydantic-settings v2
+"""
+Configuration — Pydantic v2 Settings (env / .env)
+=================================================
+
+Purpose
+-------
+Centralized, strongly-typed application configuration using:
+- Pydantic v2 `BaseSettings` for environment-driven values
+- `pydantic-settings` v2 for `.env` loading and model config
+
+Load Order & Behavior
+---------------------
+- Values are read from the environment; if not present, `.env` is used.
+- Missing required fields raise a validation error at import time.
+- `extra="ignore"`: unknown env vars are ignored (not an error).
+
+Usage
+-----
+from backend.database.config.config import settings
+
+# Example
+db_host = settings.DB_HOST
+openai_model = settings.OPEN_AI_MODEL
+
+Security
+--------
+- Never commit secrets or the `.env` file to source control.
+- Prefer runtime environment variables in production (K8s/Secrets Manager/etc.).
+"""
+
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 

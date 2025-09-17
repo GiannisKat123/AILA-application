@@ -12,7 +12,18 @@ Key features
 - Human-readable name (``conversation_name``)
 - Foreign key to the owning user (``user_id`` → ``app_user.id``)
 - Timezone-aware ``last_updated`` timestamp (UTC)
+- **Conversation type** (``conversation_type``) used by the API layer to steer flows
+  such as standard Q&A (``"normal"``) or legal complaint drafting (``"lawsuit"``)
 
+Integration notes
+~~~~~~~~~~~~~~~~~
+- The FastAPI router reads ``conversation_type`` to route behavior in ``/request``:
+  - ``"normal"`` → LLM pipeline (web-search or RAG) and streamed legal answer.
+  - ``"lawsuit"`` → intake gatekeeper, follow-up question generation, and final Greek
+    criminal complaint (Μήνυση) draft (with optional DOCX + S3 delivery).
+- This model is persisted via SQLAlchemy; request/response contracts are defined in
+  ``backend.api.models``; pipeline orchestration lives in ``llm_pipeline``; evidence
+  handling & DOCX generation live in ``prompt_utilities``; S3 I/O in ``aws_bucket_funcs``.
 """
 
 from backend.database.config.connection_engine import declarativeBase
@@ -36,8 +47,10 @@ class Conversation(declarativeBase):
     user_id : UUID
         Foreign key reference to the `app_user` table (the owner of the conversation).
     last_updated : datetime
-        Timestamp of the last update to the conversation.
-        Defaults to the current UTC time.
+        Timestamp of the last update to the conversation (timezone-aware, UTC).
+        Defaults to the current UTC time on insert.
+    conversation_type : str | None
+        Optional tag used by the API to determine the handling flow (e.g., "normal", "lawsuit").
     """
 
     __tablename__ = 'conversation'
@@ -60,12 +73,12 @@ class Conversation(declarativeBase):
     last_updated: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime.now(timezone.utc)
     )
+    """Timestamp when the conversation was last updated (UTC, timezone-aware)."""
 
     conversation_type: Mapped[str] = mapped_column(
             TEXT, nullable=True
     )
-
-    """Timestamp when the conversation was last updated. Defaults to now (UTC)."""
+    """Optional flow selector (e.g., "normal", "lawsuit"). Used by the router and pipeline."""
 
     def __init__(self, conversation_id: UUID, conversation_name: str, user_id: UUID, last_updated, conversation_type:str):
         """
@@ -81,6 +94,8 @@ class Conversation(declarativeBase):
             The ID of the user who owns this conversation.
         last_updated : datetime | str
             Last updated timestamp. Accepts datetime or ISO8601 string.
+        conversation_type : str
+            Optional flow selector (e.g., "normal", "lawsuit") for API behavior.
         """
         self.id = conversation_id
         self.conversation_name = conversation_name

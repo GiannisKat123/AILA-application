@@ -1,3 +1,37 @@
+"""
+Legal RAG Workflow: Index Loading • Reranking • Parallel Retrieval • Context Summarization
+==========================================================================================
+
+Purpose
+-------
+This module wires up a LangGraph-powered legal assistant workflow:
+- Loads LlamaIndex vector indexes with specific embedding backends.
+- Supports two reranking modes: Cohere finetuned reranker and Sentence-Transformers CrossEncoder.
+- Classifies queries, rewrites them, retrieves documents in parallel, and summarizes context.
+- Optionally uses a web search tool path, otherwise falls back to RAG.
+
+Key Components
+--------------
+- load_vector_index      : Open a persisted LlamaIndex and return a retriever (hybrid search).
+- load_reranker_model    : Load either a Cohere finetuned reranker or a CrossEncoder.
+- initialize_indexes     : Initialize all domain-specific retrievers (phishing, cases, GPC, GDPR).
+- AgentState (TypedDict) : Shared graph state (query, rewrites, classifications, retrieved docs, summaries).
+- LLM_Pipeline           : Orchestrates the end-to-end pipeline with LangGraph nodes.
+
+Configuration (settings)
+------------------------
+- settings.API_KEY              : OpenAI API key for LLM calls / web_search_preview.
+- settings.OPEN_AI_MODEL        : Chat model name for LangChain (e.g., "gpt-4o-mini-2024-07-18").
+- settings.COHERE_API_KEY       : Cohere API key for reranking (if used).
+- settings.COHERE_MODEL_ID      : ID of the finetuned Cohere model (base id without "-ft").
+- settings.TAVILY_API_KEY       : (Optional) for TavilySearch if re-enabled.
+
+Caution
+-------
+- Do not modify logic in this file when adding documentation.
+- Some paths/IDs are environment-specific; ensure local caches (embeddings/rerankers) exist.
+"""
+
 from backend.database.config.config import settings
 from llama_index.core import StorageContext
 from llama_index.embeddings.openai import OpenAIEmbedding
@@ -23,11 +57,37 @@ from openai import OpenAI
 from sentence_transformers import CrossEncoder
 
 def load_vector_index(top_k:int,persist_dir:str, embedding):
+    """
+    Open a persisted LlamaIndex from disk and return a configured retriever.
+
+    Args:
+        top_k (int): Number of top similar nodes to return per query.
+        persist_dir (str): Directory containing the persisted index.
+        embedding: Embedding model instance used by LlamaIndex for query encoding.
+
+    Returns:
+        VectorIndexRetriever: Retriever configured for hybrid similarity search with `similarity_top_k=top_k`.
+    """
     storage_context = StorageContext.from_defaults(persist_dir=persist_dir)
     index = load_index_from_storage(storage_context=storage_context,embed_model=embedding)
     return index.as_retriever(similarity_top_k=top_k,search_type='hybrid')
 
 def load_reranker_model(type:str):
+    """
+    Load a reranker backend.
+
+    Args:
+        type (str): Either 'cohere' for a Cohere finetuned reranker or 'cross-encoder'
+                    for a local Sentence-Transformers CrossEncoder.
+
+    Returns:
+        dict: For 'cohere' → {'cohere_client': ClientV2, 'fituned_model': GetFinetunedModelResponse}
+              For 'cross-encoder' → {'reranker_model': CrossEncoder}
+
+    Notes:
+        - The 'cohere' pathway uses `settings.COHERE_API_KEY` and `settings.COHERE_MODEL_ID`.
+        - CrossEncoder path expects the local model to be present at the given path.
+    """
     if type == 'cohere':
         co = cohere.ClientV2(settings.COHERE_API_KEY)
         ft = co.finetuning.get_finetuned_model(settings.COHERE_MODEL_ID)
@@ -37,7 +97,21 @@ def load_reranker_model(type:str):
         return {'reranker_model':reranker_model}
 
 def initialize_indexes(top_k:int):
+    """
+    Initialize and return all domain-specific retrievers with their respective embedding backends.
 
+    Domains:
+        - Phishing (multilingual e5 legal matryoshka)
+        - Law Cases: Recall & Precision indexes (modernbert / bge-m3 legal variants)
+        - Greek Penal Code: Recall & Precision
+        - GDPR: Recall & Precision
+
+    Args:
+        top_k (int): Number of candidates to retrieve per domain retriever.
+
+    Returns:
+        dict[str, VectorIndexRetriever]: Mapping of domain names to retrievers ready for querying.
+    """
     # 🔐 Phishing
     phishing_retriever = load_vector_index(
         top_k,
@@ -99,6 +173,18 @@ def initialize_indexes(top_k:int):
     }
 
 class AgentState(TypedDict):
+    """ 
+    Shared graph state for the LangGraph workflow.
+
+    Keys:
+        user_query (str): Original user input (or rewritten form depending on node).
+        summarized_context (str): Aggregated summary used to answer the query.
+        search_results (str): (Optional) Web search summary text path.
+        questions (List[str]): Query rewrites/variants (0=original, 1..n rewrites).
+        query_classification (Dict[int, List[str]]): For each variant level, a pair [question, index_names[]].
+        retrieved_docs (Dict[int, List]): For each variant level, list of [content, metadata, score] from reranker.
+        context (Dict[str, str]): Reserved for additional context if needed by downstream nodes.
+    """
     user_query: str
     summarized_context:str
     search_results: str
@@ -108,9 +194,21 @@ class AgentState(TypedDict):
     context: Annotated[Dict[str, str], operator.or_] 
 
 
-
-
 class LLM_Pipeline():
+    """
+    End-to-end legal assistant pipeline built on LangGraph.
+
+    Responsibilities:
+        - Hold references to retrievers, reranker backend, and LLM clients.
+        - Drive the graph: query rewriting → classification → retrieval → summarization.
+        - Provide entrypoints for language detection, translation, web search (optional),
+          and full pipeline execution.
+
+    Args:
+        index_mapping (dict[str, VectorIndexRetriever]): Domain-name → retriever mapping.
+        reranker_model (CrossEncoder | GetFinetunedModelResponse): Reranker backend.
+        cohere_client (cohere.ClientV2 | None): Cohere client if using Cohere-based reranking.
+    """
     def __init__(self,index_mapping:dict[str,VectorIndexRetriever],reranker_model:CrossEncoder|GetFinetunedModelResponse,cohere_client:cohere.ClientV2|None = None):
         self.cohere_client = cohere_client
         self.index_mapping = index_mapping
@@ -120,6 +218,15 @@ class LLM_Pipeline():
         self.app = self.initialize_workflow()
 
     def language_detection_query(self, message: str):
+        """
+        Detect the language of the supplied user message using the chat model.
+
+        Args:
+            message (str): Raw user text.
+
+        Returns:
+            str: Detected language as returned by the model (e.g., 'English', 'Greek').
+        """
         prompt = """Find the language used in the following query: {message}"""
         
         # Match the placeholder name with the keyword argument
@@ -131,6 +238,24 @@ class LLM_Pipeline():
         return language
 
     def retrieving_docs(self,query:str,index_mapping:dict[str,VectorIndexRetriever],indexes:List[VectorIndexRetriever],reranker_model:CrossEncoder|GetFinetunedModelResponse,cohere_client:cohere.client_v2.ClientV2|None):
+        """
+        Retrieve from selected indexes and rerank results.
+
+        Behavior:
+            - For each requested index name, call .retrieve(query) and collect nodes.
+            - If CrossEncoder: score (query, doc) pairs and select top 10.
+            - If Cohere finetuned model: call cohere.rerank and map results back.
+
+        Args:
+            query (str): Query text (typically English after translation).
+            index_mapping (dict): Name → VectorIndexRetriever.
+            indexes (List[str]): Names of indexes to search.
+            reranker_model: CrossEncoder or GetFinetunedModelResponse.
+            cohere_client: Cohere client if using Cohere reranking.
+
+        Returns:
+            list[list]: Reranked documents as [[content, metadata, score], ...].
+        """
         retrieved_nodes = []
         for index in indexes:
             index = index_mapping[index]
@@ -180,7 +305,20 @@ class LLM_Pipeline():
             return [[documents[i][0],documents[i][1],relevance_scores[i]] for i in doc_indexing]
 
     def starting_prompt(self,conversation_history:List[str],query:str):
-        
+        """
+        Optionally rewrite the new user query using context, then decide if it's LEGAL scope.
+
+        - If conversation history exists, produce a standalone rewritten question.
+        - Classify as LEGAL (True/False) based on strict rules.
+        - Returns the classifier verdict and the (possibly rewritten) query.
+
+        Args:
+            conversation_history (List[str]): Prior turns for context fusion.
+            query (str): Latest user message.
+
+        Returns:
+            tuple[str, str]: ( "True" or "False", effective_query )
+        """
         print(conversation_history)
 
         if conversation_history:
@@ -263,6 +401,15 @@ class LLM_Pipeline():
     
     
     def query_translation(self,query:str):
+        """
+        Detect language, then translate the query into English (preserving legal terminology).
+
+        Args:
+            query (str): Original user query.
+
+        Returns:
+            tuple[str, str]: (detected_language, english_query)
+        """
         lang = self.language_detection_query(query)
 
         prompt = """
@@ -282,6 +429,19 @@ class LLM_Pipeline():
         return language,query
     
     def web_search(self,query:str):
+        """
+        Perform an online preview search flow via OpenAI responses API (web_search_preview tool).
+
+        Args:
+            query (str): The (usually English) query to search.
+
+        Returns:
+            dict: {'search_results': <summarized text>} suitable for downstream summarization/use.
+
+        Notes:
+            - TavilySearch pathway is present but commented out.
+            - Uses model 'gpt-4o-mini-2024-07-18' via responses.create with a system prompt.
+        """
         # search_tool = TavilySearch(
         #     max_results=5,
         #     include_answer=True,
@@ -326,6 +486,16 @@ class LLM_Pipeline():
         return {'search_results': summarized_context.output_text}
     
     def rag_pipeline(self,query:str,app):
+        """
+        Execute the compiled LangGraph app with a fresh thread and return the summarized context.
+
+        Args:
+            query (str): English query to drive retrieval/summarization.
+            app: Compiled LangGraph application.
+
+        Returns:
+            dict: {'query': <query>, 'summarized_context': <summary>}
+        """
         config = {"configurable": {"thread_id": f"{uuid4()}"}}
         result = app.invoke({
             "user_query":query,
@@ -340,6 +510,16 @@ class LLM_Pipeline():
             }
         
     def query_rewriting(self,state):
+        """
+        Generate two semantic rewrites of the user query.
+
+        Behavior:
+            - Produces 2 variations and stores them alongside the original in state['questions'].
+            - Retries on transient errors; raises on repeated failure.
+
+        Returns:
+            dict: {'questions': {0: original, 1: rewrite1, 2: rewrite2}}
+        """
         prompt = """
         Rewrite the following user query into 2 semantically similar but linguistically diverse variations.
 
@@ -378,6 +558,12 @@ class LLM_Pipeline():
         raise RuntimeError("❌ Failed to rewrite query after multiple attempts.")
 
     def run_classifications_parallel(self,state):
+        """
+        Classify each query variant (0,1,2) in parallel into legal buckets.
+
+        Returns:
+            dict: {'query_classification': {level: [question, index_names[]], ...}}
+        """
         levels = [0,1,2]
         results = {}
 
@@ -401,6 +587,21 @@ class LLM_Pipeline():
         return {'query_classification': state['query_classification']}
 
     def query_classification(self,state,level:int):
+        """
+        Classify a specific variant into one or more legal categories and map to index names.
+
+        Categories:
+            ["Phishing Scenarios", "Specific Legal Cases", "GDPR", "Greek Penal Code"]
+
+        Mapping:
+            - GDPR → ["gdpr_index_recall_retriever","gdpr_index_precision_retriever"]
+            - Greek Penal Code → ["gpc_index_recall_retriever","gpc_index_precision_retriever"]
+            - Specific Legal Cases → ["law_cases_index_recall_retriever","law_cases_index_precision_retriever"]
+            - Phishing Scenarios → ["phishing_retriever"]
+
+        Returns:
+            dict: {'query_classification': {level: [question, index_names[] or None]}}
+        """
         prompt ="""  
             You are a legal assistant. Your task is to classify a user's query into one or more of the following legal categories:
 
@@ -471,6 +672,12 @@ class LLM_Pipeline():
         return {'query_classification':state['query_classification']}
     
     def run_retrievals_parallel(self,state):
+        """
+        Retrieve documents for each variant in parallel based on its mapped indexes.
+
+        Returns:
+            dict: {'retrieved_docs': {level: [[content, metadata, score], ...] or None}}
+        """
         levels = [0,1,2]
         results = {}
 
@@ -488,11 +695,23 @@ class LLM_Pipeline():
 
 
     def retrieve_docs(self,state,level):
+        """
+        Helper to call `retrieving_docs` for a given variant level and stash the result.
+
+        Returns:
+            dict: {level: [[content, metadata, score], ...] or None}
+        """
         retrieved_documents = self.retrieving_docs(state['questions'][0],self.index_mapping,state['query_classification'][level][1],self.reranker_model,self.cohere_client) if state['query_classification'][level][1] else None
         state['retrieved_docs'][level] = retrieved_documents
         return {level:state['retrieved_docs'][level]}
     
     def get_context(self,state):
+        """
+        Summarize retrieved documents per variant, then merge into a single context string.
+
+        Returns:
+            dict: {'summarized_context': <merged summary text>}
+        """
         summarized_prompt = """
             You are a highly competent legal assistant designed to provide accurate, well-reasoned, and context-aware answers to legal questions. Your responses should be clear, concise, and grounded in the provided legal context and conversation history.
 
@@ -533,7 +752,14 @@ class LLM_Pipeline():
         return {'summarized_context': full_summary}
 
     def initialize_workflow(self):
+        """
+        Build and compile the LangGraph workflow:
 
+            query_rewriting → parallel_classification → parallel_retrieval → get_context
+
+        Returns:
+            Any: Compiled app instance with an in-memory checkpointer.
+        """
         workflow = StateGraph(AgentState)
 
         ## Query re-writing
@@ -558,7 +784,29 @@ class LLM_Pipeline():
 
         return app
     
-    def run_full_pipeline(self,query:str,conversation_history:List[str],app,web_search_activation:bool):        
+    def run_full_pipeline(self,query:str,conversation_history:List[str],app,web_search_activation:bool):   
+        """
+        Main entrypoint for serving a user request.
+
+        Flow:
+            1) starting_prompt: rewrite + legal classifier.
+            2) If LEGAL:
+                - Translate to English.
+                - If web_search_activation: run web search preview; else run internal RAG pipeline.
+                - Return language, translated query, and summarized context.
+            3) If NON-LEGAL:
+                - Return a short, safe, role-aware response.
+
+        Args:
+            query (str): Raw user query.
+            conversation_history (List[str]): Prior conversation turns (for rewrite).
+            app: Compiled LangGraph application.
+            web_search_activation (bool): Toggle between web-search path and RAG path.
+
+        Returns:
+            dict | str: Legal path → {'query', 'summarized_context', 'language'}
+                        Non-legal path → short string answer.
+        """     
         res,new_query = self.starting_prompt(conversation_history,query)
         print(res,new_query,web_search_activation)
         if res.lower() == 'true':

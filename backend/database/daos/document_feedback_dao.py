@@ -1,28 +1,63 @@
+"""
+DocumentFeedback DAO — Create & Fetch
+=====================================
+
+Purpose
+-------
+Thin data-access layer for the DocumentFeedback entity:
+- Persist a new feedback record (links a query message to a negatively rated answer,
+  with captured doc text/context/theme).
+- Fetch all feedback records.
+
+Transaction Model
+-----------------
+- This DAO **adds** objects to the SQLAlchemy session but does **not** call `commit()`.
+  The caller controls transactions (commit/rollback) and session lifecycle.
+
+Error Handling
+--------------
+- Operational errors are logged and re-raised for the caller to handle.
+"""
+
 from sqlalchemy.orm import Session
 from backend.database.entities.document_feedback import DocumentFeedback
 import uuid
 
 class DocumentFeedbackDao:
+    """
+    Data Access Object for `DocumentFeedback`.
+
+    Responsibilities:
+        - Add a new `DocumentFeedback` instance to the active session.
+        - Retrieve all `DocumentFeedback` rows.
+
+    Notes:
+        - Session management (commit/rollback/close) is delegated to the caller.
+        - Consider adding filtered queries (by `query_id`, `negative_answer_id`, date range)
+          and pagination in future iterations.
+    """
+
     def createDocument(self, session: Session, document_feedback: DocumentFeedback) -> bool:
         """
-        Create a new user in the database with a hashed password.
+        Add a new `DocumentFeedback` record to the session.
 
         Parameters
         ----------
         session : Session
-            Active SQLAlchemy session.
-        user_data : User
-            User entity object containing user details.
+            Active SQLAlchemy session (transaction boundary controlled by the caller).
+        document_feedback : DocumentFeedback
+            The `DocumentFeedback` entity to persist.
 
         Returns
         -------
         bool
-            True if user creation is successful.
+            True if the object was added to the session successfully.
+            (A subsequent `session.commit()` is required to persist it.)
 
         Raises
         ------
         Exception
-            If hashing or insertion fails.
+            Propagates any SQLAlchemy or application error encountered during `session.add`.
         """
         try:
             session.add(document_feedback)
@@ -33,26 +68,22 @@ class DocumentFeedbackDao:
 
     def fetchDocs(self, session: Session):
         """
-        Fetch all messages in a conversation, ordered by creation time (ascending).
-        Internally, retrieves the latest messages first via a subquery,
-        then re-orders them chronologically.
+        Fetch all `DocumentFeedback` records.
 
         Parameters
         ----------
         session : Session
             Active SQLAlchemy session.
-        conversation_id : UUID
-            Unique identifier of the conversation.
 
         Returns
         -------
-        list[UserMessage]
-            List of messages belonging to the specified conversation.
+        list[DocumentFeedback]
+            A list containing every feedback row in `document_feedback`.
 
         Raises
         ------
         Exception
-            If query fails.
+            Propagates any SQLAlchemy or application error encountered during the query.
         """
         try:
             all_docs = session.query(DocumentFeedback).all()

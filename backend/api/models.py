@@ -7,21 +7,32 @@ validation and automatic OpenAPI schema generation.
 
 from pydantic import BaseModel
 from typing import List, Optional
+from pydantic import Field, HttpUrl
 
 class FileRec(BaseModel):
-    original: str
-    path: str
-    mime: str
-    public_url: Optional[str] = None  # if you serve uploads via CDN/static
+    """Metadata for an uploaded/stored file."""
+    original: str = Field(..., description="Original filename as provided by the client.", example="report.pdf")
+    path: str = Field(..., description="Server-side storage path or key.", example="/uploads/2025/09/report-1234.pdf")
+    mime: str = Field(..., description="MIME type of the file.", example="application/pdf")
+    public_url: Optional[HttpUrl] = Field(
+        None,
+        description="Publicly accessible URL if served via CDN/static hosting.",
+        example="https://cdn.example.com/uploads/report-1234.pdf"
+    )
 
 
 class DocumentFeedbackDetails(BaseModel):
-    query_id: str
-    negative_answer_id:str
-    doc_name:str
-    doc_text:str
-    context:str
-    theme:str
+    """
+    Details captured when a user marks a retrieved document/answer as unhelpful or incorrect.
+    Useful for offline evaluation, retraining, and retrieval quality dashboards.
+    """
+    query_id: str = Field(..., description="Identifier of the originating user query.", example="q_7f1b6d3a")
+    negative_answer_id: str = Field(..., description="Identifier of the answer the user disliked.", example="ans_c0ffee42")
+    doc_name: str = Field(..., description="Document title or filename.", example="GDPR_Article_6")
+    doc_text: str = Field(..., description="Raw text (or excerpt) of the document passage shown to the user.")
+    context: str = Field(..., description="Retrieved context chunk shown alongside the answer.")
+    theme: str = Field(..., description="Optional tag/category (e.g., 'GDPR', 'Phishing', 'Case Law').", example="GDPR")
+
 
 class UserCredentials(BaseModel):
     """
@@ -41,6 +52,7 @@ class ConversationCreationDetails(BaseModel):
     conversation_name: str
     """A human-readable title for the conversation."""
     conversation_type:str
+    """The type of the conversation (normal or other depending on the tool used)"""
 
 class UpdateConversationDetails(BaseModel):
     """
@@ -86,8 +98,11 @@ class Message(BaseModel):
     conversation_history: List[dict]
     """History of previous messages in the conversation."""
     web_search_tool: bool
+    """A flag that defines whether the online mode should be enabled or not"""
     conversation_type: str
+    """The type of the conversation (normal or other depending on the tool used)"""
     conversation_id: str
+    """The ID of the conversation the message belongs to."""
 
 
 class UserAuthentication(BaseModel):
@@ -113,6 +128,7 @@ class UserData(BaseModel):
     email: str
     """Email address of the user."""
     role: str
+    """The role of the specified user (can be normal user or lawyer)"""
 
 
 class VerifCode(BaseModel):

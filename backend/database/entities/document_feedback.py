@@ -1,20 +1,28 @@
 """
-UserMessage ORM Model
-=====================
+DocumentFeedback ORM Model
+==========================
 
-The ``UserMessage`` ORM model represents a single message record within a
-conversation. Each message is tied to a ``Conversation`` entity via a
-foreign key and may optionally carry user feedback.
+The ``DocumentFeedback`` ORM model represents a feedback event captured during a
+Q&A interaction. It links a *query message* to a *negatively rated answer* and
+stores the offending document passage, its context, and a theme tag for analysis.
 
-Key features
+Table
+-----
+- PostgreSQL table: ``document_feedback`` (SQLAlchemy 2.0 typed mappings)
+- PostgreSQL-native UUID columns for identifiers
+
+Key Features
 ~~~~~~~~~~~~
-- PostgreSQL-native UUID primary key (``id``)
-- Foreign key reference to ``conversation.id`` (``conversation_id``)
-- Timezone-aware ``date_created_on`` timestamp (UTC)
-- Message text content (``message_text``)
-- Sender role indicator (``role``)
-- Optional feedback flag (``feedback``)
+- UUID primary key (``id``)
+- Foreign keys to messages (``query_id`` and ``negative_answer_id`` → ``message.id``)
+- Text fields capturing document title (``doc_name``), raw text (``doc_text``), and context (``context``)
+- Theme/category tag (``theme``) for analytics
+- Timezone-aware creation timestamp (UTC)
 
+Integration Notes
+~~~~~~~~~~~~~~~~~
+- Created via the FastAPI endpoint ``/new_document_feedback`` (see `backend.api.fast_api`)
+- Complements the pipeline’s evaluation loop by logging unhelpful/incorrect answers
 """
 
 from backend.database.config.connection_engine import declarativeBase
@@ -26,23 +34,27 @@ from datetime import datetime, timezone
 
 class DocumentFeedback(declarativeBase):
     """
-    ORM model for the `message` table.
-    Represents a single message within a conversation.
+    ORM model for the `document_feedback` table.
+    Stores feedback linking a user query to a negatively rated answer and its document.
 
     Attributes
     ----------
     id : UUID
-        Primary key. Unique identifier for the message.
-    conversation_id : UUID
-        Foreign key reference to the `conversation` table.
-    date_created_on : datetime
-        Timestamp when the message was created.
-    message_text : str
-        Content of the message.
-    role : str
-        Role of the sender (e.g., "user", "assistant", "system").
-    feedback : bool | None
-        Optional feedback flag for the message (True/False). Default is None.
+        Primary key for this feedback record.
+    query_id : UUID
+        Foreign key to the original **query** message (`message.id`).
+    negative_answer_id : UUID
+        Foreign key to the **answer** message that was marked negative (`message.id`).
+    doc_name : str
+        Human-readable name/title of the source document.
+    doc_text : str
+        Raw text or excerpt of the document passage presented to the user.
+    context : str
+        Retrieval context chunk shown with the answer.
+    theme : str
+        Tag/category for analytics (e.g., "GDPR", "Greek Penal Code", "Phishing").
+    date_created : datetime
+        Time when the feedback was recorded (UTC, timezone-aware).
     """
 
     __tablename__ = 'document_feedback'
@@ -50,66 +62,75 @@ class DocumentFeedback(declarativeBase):
     id: Mapped[UUID] = mapped_column(
         pgUUID(as_uuid=True), primary_key=True
     )
-    """Primary key. UUID of the message."""
+    """Primary key (UUID) for this feedback record."""
 
     query_id: Mapped[UUID] = mapped_column(
         pgUUID(as_uuid=True), ForeignKey('message.id'), nullable=False
     )
-    """Foreign key to the conversation this message belongs to."""
+    """Foreign key to the originating query message (`message.id`)."""
 
     negative_answer_id: Mapped[UUID] = mapped_column(
         pgUUID(as_uuid=True), ForeignKey('message.id'), nullable=False
     )
+    """Foreign key to the negatively rated answer message (`message.id`)."""
 
     doc_name: Mapped[str] = mapped_column(
         TEXT, nullable=False
     )
+    """Document title or identifier."""
 
     doc_text: Mapped[str] = mapped_column(
         TEXT, nullable=False
     )
+    """Document text or extracted passage displayed to the user."""
 
     context: Mapped[str] = mapped_column(
         TEXT, nullable=False
     )
+    """Retrieved context shown alongside the answer (for auditing/debugging)."""
 
     theme: Mapped[str] = mapped_column(
         TEXT, nullable=False
     )
+    """Categorical tag for analytics (e.g., 'GDPR', 'GPC', 'Phishing')."""
 
     date_created: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=datetime.now(timezone.utc)
     )
-    """Timestamp when the message was created. Defaults to current UTC time."""
+    """Creation timestamp (UTC, timezone-aware)."""
 
     def __init__(
         self,
-        doc_id:UUID,
+        doc_id: UUID,
         query_id: UUID,
         negative_answer_id: UUID,
         doc_name: str,
         doc_text: str,
         context: str,
-        theme:str,
+        theme: str,
         date_created,
     ):
         """
-        Initialize a new UserMessage object.
+        Initialize a new DocumentFeedback object.
 
         Parameters
         ----------
-        message_id : UUID
-            Unique identifier of the message.
-        conversation_id : UUID
-            ID of the conversation this message belongs to.
-        message : str
-            The content of the message.
-        date_created_on : datetime | str
-            Timestamp when the message was created. Accepts datetime or ISO8601 string.
-        role : str
-            The role of the sender (user/assistant/system).
-        feedback : bool | None, optional
-            Feedback flag for the message (default is None).
+        doc_id : UUID
+            Unique identifier for this feedback record.
+        query_id : UUID
+            ID of the original query message (`message.id`).
+        negative_answer_id : UUID
+            ID of the negatively rated answer message (`message.id`).
+        doc_name : str
+            Title or name of the associated document.
+        doc_text : str
+            Document passage or full text shown to the user.
+        context : str
+            Retrieval context segment provided with the answer.
+        theme : str
+            Category label for analytics (e.g., "GDPR", "Greek Penal Code").
+        date_created : datetime | str
+            Creation timestamp; accepts a `datetime` or ISO8601 string.
         """
         self.id = doc_id
         self.query_id = query_id
@@ -126,12 +147,12 @@ class DocumentFeedback(declarativeBase):
 
     def __str__(self) -> str:
         """
-        Return a human-readable string representation of the message.
+        Return a human-readable string representation of the feedback record.
 
         Returns
         -------
         str
-            A formatted string containing conversation ID, message text, role, and creation timestamp.
+            A formatted string summarizing linkage and document metadata.
         """
         return (
             f"Conversation: id:{self.id}, "

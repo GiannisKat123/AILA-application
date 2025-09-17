@@ -75,7 +75,7 @@ class UserMessage(declarativeBase):
     feedback: Mapped[str] = mapped_column(
         TEXT, nullable=True
     )
-    """Optional feedback flag (True = positive, False = negative, None = not set)."""
+    """Optional feedback flag (string)."""
 
     def __init__(
         self,
@@ -101,7 +101,7 @@ class UserMessage(declarativeBase):
             Timestamp when the message was created. Accepts datetime or ISO8601 string.
         role : str
             The role of the sender (user/assistant/system).
-        feedback : bool | None, optional
+        feedback : string | None, optional
             Feedback flag for the message (default is None).
         """
         self.id = message_id

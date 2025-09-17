@@ -502,18 +502,64 @@ def get_conversations(session: Session, username: str) -> list[dict]:
 
 
 @transactional
-def create_document_feedback(session:Session, data:DocumentFeedbackDetails):
+def create_document_feedback(session: Session, data: DocumentFeedbackDetails):
+    """
+    Persist a `DocumentFeedback` record for analytics/evaluation.
+
+    This function:
+      1) Generates a new UUID for the feedback record.
+      2) Captures a timezone-aware UTC timestamp.
+      3) Constructs the ORM entity from the incoming DTO.
+      4) Delegates persistence to the DAO (session.add), with commit/rollback
+         handled by the `@transactional` decorator applied to this function.
+
+    Parameters
+    ----------
+    session : Session
+        Active SQLAlchemy session supplied by the transactional context.
+    data : DocumentFeedbackDetails
+        Input payload carrying:
+          - query_id (UUID as str)
+          - negative_answer_id (UUID as str)
+          - doc_name (str)
+          - doc_text (str)
+          - context (str)
+          - theme (str)
+
+    Returns
+    -------
+    None
+        On success, the transaction is committed by the decorator.
+        Exceptions are propagated to the caller for standardized handling.
+
+    Side Effects
+    ------------
+    - Generates a new `doc_id` (UUID v4).
+    - Timestamps the record with current UTC (`datetime.now(timezone.utc)`).
+    - Stores the timestamp as ISO 8601 string, which the entity converts to `datetime`.
+
+    Raises
+    ------
+    Exception
+        Any exception from SQLAlchemy/DAO is allowed to bubble up so the
+        calling layer can handle/log/report uniformly.
+
+    Notes
+    -----
+    - Ensure `data.doc_text`/`data.context` are sanitized if they can include PII.
+    - This operation is not idempotent; repeated calls will create multiple rows.
+    """
     document_feedback_dao = DocumentFeedbackDao()
     timestamp = datetime.now(timezone.utc)
     document_feedback = DocumentFeedback(
-        doc_id = uuid.uuid4(),
-        query_id = data.query_id,
-        negative_answer_id= data.negative_answer_id,
-        doc_name = data.doc_name,
-        doc_text = data.doc_text,
+        doc_id=uuid.uuid4(),
+        query_id=data.query_id,
+        negative_answer_id=data.negative_answer_id,
+        doc_name=data.doc_name,
+        doc_text=data.doc_text,
         context=data.context,
-        theme = data.theme,
+        theme=data.theme,
         date_created=timestamp.isoformat()
     )
-    document_feedback_dao.createDocument(session,document_feedback)
+    document_feedback_dao.createDocument(session, document_feedback)
 

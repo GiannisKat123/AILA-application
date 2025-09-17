@@ -159,7 +159,7 @@ class UserMessagesDao:
         message_id : UUID
             Unique identifier of the message.
         feedback : bool
-            New feedback value (e.g., True for positive, False for negative).
+            New feedback value (string).
 
         Raises
         ------

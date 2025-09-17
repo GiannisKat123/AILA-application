@@ -1,3 +1,25 @@
+"""
+FastAPI Router — Auth • Users • Conversations • Chat (Legal Assistant)
+======================================================================
+
+Purpose
+-------
+Defines the HTTP API for:
+- Authentication: login, register, verify, resend code, logout
+- Conversations: create, update, list; messages: create, list
+- User feedback and user profile retrieval
+- Chat endpoint that orchestrates legal intake (“lawsuit”) and normal Q&A flows
+
+Key Notes
+---------
+- Input validation via Pydantic models in `backend.api.models`.
+- Auth cookie: `token` (JWT). Some endpoints require/expect it.
+- Streaming responses (SSE) used for chat outputs.
+- File uploads are persisted and may be embedded into DOCX via utilities.
+
+
+"""
+
 from fastapi import APIRouter, Response, HTTPException, Cookie, Request, UploadFile, File, Form, Depends
 import json
 from backend.api.models import DocumentFeedbackDetails,UserFeedback,UserOpenData,VerifCode,UserCredentials, ConversationCreationDetails, UserData ,NewMessage, Message, UpdateConversationDetails
@@ -12,11 +34,28 @@ from typing import Optional, List
 from backend.api.prompt_utilities import persist_upload, build_messages, create_word_file, build_evidence
 from backend.api.aws_bucket_funcs.funcs import get_client ,upload, download
 from starlette.datastructures import Headers
+from json_repair import repair_json
 
 router = APIRouter()
+"""Creates the FastAPI router in which we define its routes"""
 
 @router.post('/login')
 async def login(data:UserCredentials, response:Response):
+    """Authenticate a user and set a signed JWT cookie.
+
+    Request body:
+        UserCredentials {username, password}
+
+    Behavior:
+        - Verifies credentials via `login_user`.
+        - On success, creates JWT (`create_access_token`), stores it with `update_token`,
+          and sets it as an HttpOnly cookie `token`.
+        - Returns user details; on failure, 401.
+
+    Response:
+        200: {'user_details': {...}}
+        401: HTTPException with error detail
+    """
     auth = login_user(username=data.username, password=data.password)
     print(auth)
     if auth['authenticated']:
@@ -36,6 +75,11 @@ async def login(data:UserCredentials, response:Response):
 
 @router.post('/register')
 async def register(data:UserData):
+    """Register a new user account.
+
+    Validates the request and attempts to create a user record.
+    Returns True on success; raises 401 with detail on failure.
+    """
     res = check_create_user_instance(username = data.username, password= data.password, email= data.email,role = data.role)
     if res['res']:
         return True
@@ -45,6 +89,11 @@ async def register(data:UserData):
 
 @router.post('/verify')
 async def verify(data:VerifCode):
+    """Verify a user's email using a code previously emailed to them.
+
+    Returns:
+        True if verification succeeds; else 401 with detail.
+    """
     res = check_verification_code(username=data.username,user_code=data.code)
     if res['res']:
         return True
@@ -53,6 +102,13 @@ async def verify(data:VerifCode):
 
 @router.post('/resend-code')
 async def resend_code(data:UserOpenData):
+    """Resend the email verification code to a user.
+
+    Input:
+        UserOpenData {username, email}
+    Returns:
+        True on success or raises exception.
+    """
     try:
         resend_ver_code(username=data.username,email=data.email)
         return True 
@@ -61,6 +117,10 @@ async def resend_code(data:UserOpenData):
     
 @router.post('/new_document_feedback')
 async def new_document_feed(data:DocumentFeedbackDetails):
+    """Store feedback about a retrieved document/answer.
+
+    Persists details for evaluation/training analytics.
+    """
     try:
         create_document_feedback(data=data)
         return True
@@ -71,6 +131,7 @@ async def new_document_feed(data:DocumentFeedbackDetails):
 
 @router.post('/new_conversation')
 async def new_conversation(data:ConversationCreationDetails):
+    """Create a new conversation record for a user."""
     try:
         conversation = create_conversation(username=data.username,conversation_name=data.conversation_name, conversation_type = data.conversation_type)
         return conversation
@@ -79,6 +140,7 @@ async def new_conversation(data:ConversationCreationDetails):
     
 @router.post('/update_conversation')
 async def update_conversation(data:UpdateConversationDetails):
+    """Rename/update an existing conversation by ID."""
     try:
         update_conv(conversation_name=data.conversation_name,conversation_id=data.conversation_id)
         return True
@@ -87,6 +149,7 @@ async def update_conversation(data:UpdateConversationDetails):
 
 @router.post('/new_message')
 async def new_message(data:NewMessage):
+    """Append a new message to a conversation (supports optional feedback flag)."""
     try:
         message = create_message(conversation_id=data.conversation_id, text = data.text, role = data.role, id=data.id, feedback=data.feedback)
         return message
@@ -95,6 +158,9 @@ async def new_message(data:NewMessage):
     
 @router.get('/user_conversations')
 async def get_user_conversations(token:str = Cookie(None),username:str=''):
+    """List of conversation for a given username"""
+    if not token:
+        raise HTTPException(status_code=401, detail='Missing Token')
     try:
         conversations = get_conversations(username=username)
         print(conversations)
@@ -105,6 +171,11 @@ async def get_user_conversations(token:str = Cookie(None),username:str=''):
 
 @router.get('/messages')
 async def get_messages(token:str = Cookie(None),conversation_id:str=''):
+    """Get messages for a conversation (requires valid `token`).
+
+    Returns:
+        [] if no messages, otherwise the list from storage.
+    """
     if not token:
         raise HTTPException(status_code=401, detail='Missing Token')
     try:
@@ -121,6 +192,7 @@ async def get_messages(token:str = Cookie(None),conversation_id:str=''):
 
 @router.post('/user_feedback')
 def user_feedback(data:UserFeedback):
+    """Record thumbs-up/down feedback on a specific message."""
     print(data)
     try:
         set_feedback(message_id=data.message_id,conversation_id=data.conversation_id,feedback=data.feedback)
@@ -129,6 +201,15 @@ def user_feedback(data:UserFeedback):
 
 @router.get('/get_user')
 def get_user(token: str = Cookie(None)):
+    """Decode the JWT cookie and return the current user's profile.
+
+    Cookie:
+        token: JWT set at login.
+
+    Returns:
+        {"username","email","verified","role"} or 401/403 errors.
+    """
+
     if not token:
         raise HTTPException(status_code=401, detail='Missing Token')
     try:
@@ -157,6 +238,19 @@ async def parse_message_form(
     web_search_tool: Optional[str] = Form(None),
     conversation_history: Optional[str] = Form(None),
 ) -> dict:
+    """Parse and validate multipart/form-data for /request.
+
+    Validates:
+        - presence: message, conversation_type
+        - web_search_tool: coerces to bool (1/true/yes/on)
+        - conversation_history: JSON array (defaults to [])
+
+    Returns:
+        dict with normalized fields ready for downstream use.
+
+    Raises:
+        400 with specific detail on validation errors.
+    """
     # Validate presence
     missing = [k for k,v in {
         "message": message,
@@ -186,6 +280,7 @@ async def parse_message_form(
 
 
 def merge_dicts(dict1,dict2):
+    """Deep-merge two dictionaries (right wins), recursing on nested dicts."""
     merged = dict1.copy()
     for k,v in dict2.items():
         if k in merged and isinstance(merged[k],dict) and isinstance(v,dict): merged[k] = merge_dicts(merged[k],v)
@@ -194,6 +289,12 @@ def merge_dicts(dict1,dict2):
         # dict1['parsed_data'][key] 
 
 def lc_text_from_content(content) -> str:
+    """Normalize LangChain message content to plain text.
+
+    - If string → return as-is.
+    - If list of content parts → concatenates only 'text' parts.
+    - Else → str(content).
+    """
     # LangChain AIMessage.content can be str OR a list of parts
     if isinstance(content, str):
         return content
@@ -203,6 +304,16 @@ def lc_text_from_content(content) -> str:
     return str(content)
 
 def parse_llm_json(resp) -> dict:
+    """Parse a model response into JSON with optional repair.
+
+    Steps:
+        1) Extract text from LangChain message (handling code fences).
+        2) Try `json.loads`.
+        3) Fallback: `json_repair.repair_json` then `json.loads`.
+
+    Raises:
+        ValueError with first 500 chars of raw text if parsing still fails.
+    """
     raw = lc_text_from_content(resp.content).strip()
     # strip markdown code fences if present
     if raw.startswith("```"):
@@ -213,15 +324,26 @@ def parse_llm_json(resp) -> dict:
         return json.loads(raw)            # preferred: it's JSON, not Python
     except json.JSONDecodeError:
         # optional: last-resort repair if the model added trailing commas, etc.
-        try:
-            from json_repair import repair_json  # pip install json-repair
+        try:  # pip install json-repair
             return json.loads(repair_json(raw))
         except Exception as e:
             raise ValueError(f"Failed to parse LLM JSON: {e}\nRAW:\n{raw[:500]}")
 
 @router.post('/request')
 async def chat_endpoint(request_data: Message = Depends(parse_message_form),files: Optional[List[UploadFile]] = File(None),request:Request=None):
+    """Main chat endpoint (SSE streaming).
 
+    Modes:
+        - "lawsuit": gatekeep inputs, ask follow-ups if data missing, or draft complaint (Greek).
+          - Persists uploads, builds evidence, and can generate DOCX + S3 link.
+        - "normal": run pipeline (web or RAG) and stream a concise legal answer.
+
+    Request:
+        Form fields parsed by `parse_message_form`, optional file uploads.
+
+    Response:
+        StreamingResponse with "data: {json}\n\n" chunks.
+    """
     print(request_data.keys())
     model = ChatOpenAI(model=settings.OPEN_AI_MODEL,api_key=settings.API_KEY, temperature=0.7,)
 
@@ -511,6 +633,7 @@ async def chat_endpoint(request_data: Message = Depends(parse_message_form),file
 
 @router.post('/logout')
 async def logout(response:Response):
+    """Logout by clearing the auth cookie `token`."""
     try:
         response.delete_cookie(key = "token")
         return True

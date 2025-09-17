@@ -47,4 +47,5 @@ langgraph
 langchain-tavily
 boto3
 python-docx
+json-repair
 git+https://github.com/brandonstarxel/chunking_evaluation.git

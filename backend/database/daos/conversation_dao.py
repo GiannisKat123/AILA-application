@@ -264,7 +264,7 @@ class ConversationDao:
         self, session: Session, user_id: UUID, conversation_type:str
     ):
         """
-        Fetch conversations for a user by both user ID and conversation name.
+        Fetch conversations for a user by both user ID and conversation type.
 
         Parameters
         ----------
@@ -272,8 +272,8 @@ class ConversationDao:
             Active SQLAlchemy session.
         user_id : UUID
             Unique identifier of the user.
-        conversation_name : str
-            Name of the conversation.
+        conversation_type : str
+            Type of the conversation.
 
         Returns
         -------

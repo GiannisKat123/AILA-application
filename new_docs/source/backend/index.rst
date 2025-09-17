@@ -23,12 +23,12 @@ API Reference
 The following tree contains the full API reference for the backend package.  
 It is auto-generated from the FastAPI codebase using `sphinx-autoapi`.  
 
-.. toctree::
-   :maxdepth: 1
-   :titlesonly:
-   :glob:
+- :doc:`backend/api </backend_api/backend/api/index>`
+- :doc:`backend/cache_models </backend_api/backend/cache_models/index>`
+- :doc:`backend/crypt </backend_api/backend/crypt/index>`
+- :doc:`backend/database </backend_api/backend/database/index>`
+- :doc:`backend/main </backend_api/backend/main/index>`
 
-   /backend/backend/index
 
 .. [#f1] API documentation automatically generated with `sphinx-autoapi <https://github.com/readthedocs/sphinx-autoapi>`_.
 
