@@ -39,7 +39,7 @@ jobs:
       - name: Install Python doc dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install sphinx sphinx-autobuild myst-parser sphinx-rtd-theme linkify-it-py
+          pip install sphinx sphinx-autobuild myst-parser sphinx-rtd-theme linkify-it-py pydantic-settings>=2 pydantic>=2 SQLAlchemy>=2 bcrypt cffi python-dotenv
 
       - name: Ensure Sphinx source structure exists
         run: |
