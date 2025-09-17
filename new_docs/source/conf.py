@@ -123,7 +123,7 @@ html_theme_options = {
     "navigation_depth": 4,
 }
 
-html_static_path = ["/source/_static"]
+html_static_path = ["new_docs/source/_static"]
 
 autodoc_mock_imports = [
     "fastapi", "uvicorn", "sqlalchemy", "pydantic", "redis", "pymongo",

@@ -9,11 +9,11 @@ class Settings(BaseSettings):
     """
 
     # Pydantic v2 config (replaces inner class Config)
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        extra="ignore",          # ignore unexpected env vars instead of erroring
-    )
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        extra = "ignore"
+
 
     OLLAMA_SERVER_URL: str = Field(..., description="URL of the Ollama server for model inference.")
     FRONTEND_URL: str = Field(..., description="Base URL of the frontend client application.")
