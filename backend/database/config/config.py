@@ -63,6 +63,16 @@ class Settings(BaseSettings):
     TAVILY_API_KEY: str
     """API key for Tavily API integration."""
 
+    AWS_PROFILE:str
+
+    AWS_ACCESS_KEY: str
+    
+    AWS_SECRET_KEY: str
+    
+    BUCKET_NAME : str
+    
+    REGION: str
+
     class Config:
         """
         Configuration for Pydantic settings. Loads values from `.env` file by default.

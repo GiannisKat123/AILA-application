@@ -245,7 +245,7 @@ const Chat = () => {
             form.append("conversation_type", type);
             form.append("web_search_tool", String(isOnline));  // must be string
             form.append("conversation_history", JSON.stringify(messages.slice(-10)));
-
+            form.append('conversation_id',conversation_id??"")
 
             if (uploadedFiles) {
                 for (const f of uploadedFiles) {

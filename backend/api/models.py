@@ -87,6 +87,7 @@ class Message(BaseModel):
     """History of previous messages in the conversation."""
     web_search_tool: bool
     conversation_type: str
+    conversation_id: str
 
 
 class UserAuthentication(BaseModel):

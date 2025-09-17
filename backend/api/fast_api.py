@@ -7,9 +7,11 @@ from fastapi.responses import StreamingResponse,JSONResponse
 from langchain.prompts import PromptTemplate 
 from langchain_openai import ChatOpenAI
 from backend.database.config.config import settings
-import os, json
+import os, json, ast, re
 from typing import Optional, List
-from backend.api.prompt_utilities import persist_upload, build_messages
+from backend.api.prompt_utilities import persist_upload, build_messages, create_word_file, build_evidence
+from backend.api.aws_bucket_funcs.funcs import get_client ,upload, download
+from starlette.datastructures import Headers
 
 router = APIRouter()
 
@@ -183,6 +185,40 @@ async def parse_message_form(
     }
 
 
+def merge_dicts(dict1,dict2):
+    merged = dict1.copy()
+    for k,v in dict2.items():
+        if k in merged and isinstance(merged[k],dict) and isinstance(v,dict): merged[k] = merge_dicts(merged[k],v)
+        else: merged[k] = v
+    return merged
+        # dict1['parsed_data'][key] 
+
+def lc_text_from_content(content) -> str:
+    # LangChain AIMessage.content can be str OR a list of parts
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        # keep only text parts
+        return "".join(p.get("text","") for p in content if isinstance(p, dict) and p.get("type")=="text")
+    return str(content)
+
+def parse_llm_json(resp) -> dict:
+    raw = lc_text_from_content(resp.content).strip()
+    # strip markdown code fences if present
+    if raw.startswith("```"):
+        raw = re.sub(r"^```(?:json)?\n", "", raw)
+        raw = re.sub(r"\n```$", "", raw)
+
+    try:
+        return json.loads(raw)            # preferred: it's JSON, not Python
+    except json.JSONDecodeError:
+        # optional: last-resort repair if the model added trailing commas, etc.
+        try:
+            from json_repair import repair_json  # pip install json-repair
+            return json.loads(repair_json(raw))
+        except Exception as e:
+            raise ValueError(f"Failed to parse LLM JSON: {e}\nRAW:\n{raw[:500]}")
+
 @router.post('/request')
 async def chat_endpoint(request_data: Message = Depends(parse_message_form),files: Optional[List[UploadFile]] = File(None),request:Request=None):
 
@@ -198,113 +234,221 @@ async def chat_endpoint(request_data: Message = Depends(parse_message_form),file
                 text = file.read()
             texts.append(text)
 
+        if request_data['conversation_id'] not in request.app.state.user_data_dict.keys(): request.app.state.user_data_dict[request_data['conversation_id']] = {}
 
         prompt = """Find the language used in the following query: {message}"""
         
-        # Match the placeholder name with the keyword argument
         response = model.invoke(prompt.format(message=request_data['message']))
         
         response_content = str(response.content).strip()
         language = response_content
 
         file_list = [persist_upload(file) for file in files] if files else []
-        
+    
+        path = 'backend/api/docs_for_lawsuits'
+        docs = os.listdir(path)
+        texts = []
+        for doc in docs:
+            with open(path+f'/{doc}',encoding='utf-8') as file:
+                text = file.read()
+            texts.append(text)  
 
-        prompt = """You are a meticulous legal drafting assistant for Greek criminal complaints about phishing/cyber fraud.
-            Produce a complete, formally styled criminal complaint (Μήνυση) that mirrors authentic filings before Greek Prosecutors.
-            Write the complaint **in Greek**, using clear sections, precision, numbering, and strictly chronological narration where relevant.
+        file_list = [persist_upload(file) for file in files] if files else []
 
-            === DATA NEEDED ===
-            1. Complainant’s details: Full name, Address, Phone number, Email.
-            2. Accused’s details (if known): Full name/Company, Contact information, IBAN, etc.
-            3. Detailed description of events: How the phishing occurred, through which platform, amounts involved.
-            4. Chronological timeline: Dates/times and events in order.
-            5. Transactions: Exact dates, amounts, payment method, IBAN, references.
-            6. Evidence available: Screenshots, receipts, messages, URLs, emails, phone numbers.
-            7. Place & Prosecutor: The city where the complaint is filed (e.g., “TO: The Prosecutor of First Instance of Athens”)
-                and the place of commission/reference (e.g., Athens, 01/09/2025).
-
-            === DRAFTING RULES ===
-            1) Use ONLY the provided data. If a field is missing, insert a clear placeholder like "[…]".
-            2) Dates must follow DD/MM/YYYY. Monetary amounts in Euro with thousand separators and two decimals, e.g., 1.234,56 €.
-            3) Enumerate transactions, phone numbers, emails, URLs, and pieces of evidence.
-            4) Legal basis (succinct): Article 386 ΠΚ (fraud) and/or Article 386A ΠΚ (computer fraud). Mention “κατ’ εξακολούθηση” where applicable.
-            5) Include an explicit request for investigation by the Cyber Crime Division (Διεύθυνση Δίωξης Ηλεκτρονικού Εγκλήματος).
-            6) Close with the standard formula: “ΓΙΑ ΤΟΥΣ ΛΟΓΟΥΣ ΑΥΤΟΥΣ… ΜΗΝΥΩ…” and a signature block.
-            7) Do NOT fabricate facts. If something critical is missing, ask targeted follow-up questions (in Greek) before including it.
-
-
-            === OUTPUT TEMPLATE (headings may be adapted, content must remain in Greek) ===
-            ΠΡΟΣ: Τον/Την κ. Εισαγγελέα Πρωτοδικών […/πόλη]
-            Του μηνυτή: [Ονοματεπώνυμο], [Δ/νση], [Τηλέφωνο], [Email]
-            Κατά: [Ονοματεπώνυμο/Επωνυμία] (αν γνωστός), [Στοιχεία επικοινωνίας/IBAN] (αν διαθέσιμα)
-
-            I. Αντικείμενο
-            Σύντομη περίληψη της καταγγελίας.
-
-            II. Πραγματικά περιστατικά (Χρονολογική παράθεση)
-            1) [Ημερομηνία]: [Γεγονός…]
-            2) [Ημερομηνία]: [Γεγονός…]
-            […]
-            Συναλλαγές:
-            - [#1] Ημερ.: […], Ποσό: [… €], Τρόπος/IBAN: […], Αναφορά: […]
-            - [#2] […]
-
-            III. Αποδεικτικά μέσα
-            1) [Screenshots/Αποδείξεις/Συνομιλίες] — περιγραφή
-            2) […]
-            URLs/Emails/Τηλέφωνα (απαρίθμηση):
-            - URL: […]
-            - Email: […]
-            - Τηλ.: […]
-
-            IV. Νομική θεμελίωση
-            Τα ανωτέρω συγκροτούν τα αδικήματα της απάτης (άρθρο 386 ΠΚ) και/ή απάτης με υπολογιστή (άρθρο 386Α ΠΚ), ενδεχομένως κατ’ εξακολούθηση, βάσει των επαναλαμβανόμενων πράξεων.
-
-            V. Αιτήματα
-            1) Να διαταχθεί προκαταρκτική εξέταση/προανάκριση και ψηφιακή διερεύνηση από τη Διεύθυνση Δίωξης Ηλεκτρονικού Εγκλήματος.
-            2) Να αναζητηθούν στοιχεία κατόχων λογαριασμών/IBAN, IP addresses, πάροχοι, και να ληφθούν οι νόμιμες δικονομικές ενέργειες.
-            3) Να ασκηθεί ποινική δίωξη κατά των υπαιτίων.
-            4) Να μου κοινοποιούνται οι εξελίξεις στη δηλωθείσα διεύθυνση/email.
-
-            VI. Συνημμένα
-            1) [Τίτλος αποδεικτικού #1]
-            2) […]
-
-            Ημερομηνία: [..../..../....] – Τόπος: […]
-            Ο Μηνυτής
-            [Υπογραφή]
-
-            === CONTEXT AVAILABLE ===
-            - Reference documents (must be leveraged): {documents}
-            - Conversation history (for missing data & context): {conversation_history}
-            - Latest user message: {query}
-
-            === DECISION LOGIC ===
-            • If critical items from DATA NEEDED are missing, ask targeted follow-ups (in Greek) and do NOT produce the final complaint yet.
-            • Otherwise, produce the complete complaint using the OUTPUT TEMPLATE.
-
-            Generate your answer in {language}.
-            
-            """.format(documents=texts, conversation_history=request_data['conversation_history'],query=request_data['message'],language=language)
-
-        
+        prompt = "Describe the files attached by the user"
         messages = build_messages(prompt,file_list)
+        files_description = model.invoke(messages)
 
-        print(messages)
 
-        async def generate():
-            try:
-                async for chunk in model.astream(messages):
-                    content = chunk.content if hasattr(chunk, 'content') else str(chunk)
-                    yield f"data: {json.dumps({'response': content, 'status': 200})}\n\n"
+        prompt_1 = """You are a meticulous legal intake assistant for Greek criminal complaints about phishing/cyber fraud.
 
-            except Exception as e:
-                # Log error details            
-                # OR raise it, if you don't want partial yield
-                raise HTTPException(status_code=500, detail="Internal Server Error during LLM generation.")
-            
-        return StreamingResponse(generate(), media_type="text/event-stream")
+                TASK:
+                1) Parse the available inputs and determine if the data are sufficient to draft a complete, formally styled Greek criminal complaint (Μήνυση).
+                2) If ANY “DATA NEEDED” item is missing or unclear, DO NOT draft the complaint. Instead, produce precise, targeted follow-up questions in Greek.
+                3) If everything is sufficient, signal readiness.
+
+                DATA NEEDED (all in Greek where applicable):
+                1. Στοιχεία Μηνυτή: Ονοματεπώνυμο, Διεύθυνση, Τηλέφωνο, Email.
+                2. Στοιχεία Κατηγορουμένου (αν υπάρχουν): Ονοματεπώνυμο/Επωνυμία, στοιχεία επικοινωνίας, IBAN κ.λπ.
+                3. Αναλυτική περιγραφή περιστατικών: τρόπος phishing, πλατφόρμα, ποσά.
+                4. Χρονολόγιο: ημερομηνίες/ώρες με σειρά.
+                5. Συναλλαγές: ακριβείς ημερομηνίες, ποσά, μέθοδος/IBAN, αναφορές.
+                6. Αποδεικτικά: screenshots, αποδείξεις, μηνύματα, URLs, emails, τηλέφωνα. Do not fabricate them, only based on what the user sends you
+                7. Τόπος & Εισαγγελέας: πόλη κατάθεσης (π.χ. «ΠΡΟΣ: Τον/Την Εισαγγελέα Πρωτοδικών Αθηνών»), τόπος/ημερομηνία τέλεσης.
+
+                CONSTRAINTS:
+                - Μην εφευρίσκεις στοιχεία. Αν λείπουν, ρώτα στοχευμένα.
+                - Ημερομηνίες DD/MM/YYYY. Ποσά: 1.234,56 €.
+                - Γράψε πάντοτε τις ερωτήσεις/απαντήσεις στα {language}.
+
+                INPUTS:
+                - Reference documents: {documents}
+                - Conversation history: {conversation_history}
+                - Latest user message: {query}
+                - Language for final drafting: {language}
+                - Uploaded files metadata. These are evidence (if any): {evidence_lines}
+                - previous state: {state}
+
+
+                OUTPUT FORMAT (JSON only):
+                {{
+                "status": "NEED_MORE_INFO" | "READY",
+                "missing_or_unclear": ["field1", "field2"],
+                "questions_el": [
+                    "Στοχευμένη ερώτηση 1…",
+                    "Στοχευμένη ερώτηση 2…"
+                ],
+                "parsed_data": {{
+                    "complainant": [{{}}],
+                    "accused": [{{}}],
+                    "lawyer": [{{}}],
+                    "events_description": ["..."],
+                    "timeline": [{{"date":"DD/MM/YYYY","time":"HH:MM","event":"..."}}],
+                    "transactions": [{{"date":"DD/MM/YYYY","amount":"1.234,56 €","method":"...","iban":"...","reference":"..."}}],
+                    "evidence": [{evidence_lines}],
+                    "prosecutor_place": [{{"to":"ΠΡΟΣ: Τον/Την Εισαγγελέα Πρωτοδικών ...","place":"...","date":"DD/MM/YYYY"}}]
+                }}
+                }}
+
+                DECISION LOGIC:
+                - If any DATA NEEDED item is missing/unclear ⇒ status="NEED_MORE_INFO" and provide concise, targeted questions in Greek.
+                - Else ⇒ status="READY".
+            """.format(documents = texts, conversation_history = request_data['conversation_history'], query = request_data['message'], language = language, state=request.app.state.user_data_dict[request_data['conversation_id']], evidence_lines = files_description.content)
+        
+        messages = build_messages(prompt_1,file_list)
+        json_model = model.bind(response_format={"type": "json_object"})
+        response = json_model.invoke(messages)
+        resp_dict = ast.literal_eval(response.content)
+        
+        if request.app.state.user_data_dict[request_data['conversation_id']] == {}: request.app.state.user_data_dict[request_data['conversation_id']] = resp_dict
+        else:
+            for key in resp_dict.keys():
+                if key != 'parsed_data': request.app.state.user_data_dict[request_data['conversation_id']][key] = resp_dict[key]
+            for key in resp_dict['parsed_data']: request.app.state.user_data_dict[request_data['conversation_id']]['parsed_data'][key] = resp_dict['parsed_data'][key]
+
+        if request.app.state.user_data_dict[request_data['conversation_id']]['status'] == 'READY':
+            os.environ.pop("AWS_PROFILE", None)
+            os.environ.pop("AWS_DEFAULT_PROFILE", None)
+            f = open("conversations.txt", "rb")  # keep it open until you're done
+            uf = UploadFile(
+                file=f,
+                filename="conversations.txt",
+                headers=Headers({
+                    "content-disposition": 'form-data; name="files"; filename="conversations.txt"',
+                    "content-type": "text/plain",
+                })
+            )
+
+            files = [uf]
+            path = 'backend/api/docs_for_lawsuits'
+            docs = os.listdir(path)
+            texts = []
+            for doc in docs:
+                with open(path+f'/{doc}',encoding='utf-8') as file:
+                    text = file.read()
+                texts.append(text) 
+
+            prompt_2 = '''You are a meticulous legal drafting assistant for Greek criminal complaints about phishing/cyber fraud.
+                Produce a complete, formally styled criminal complaint (Μήνυση) in **Greek**, mirroring authentic filings to Greek Prosecutors.
+
+                INPUTS (assume sufficient and validated):
+                - Parsed data from the Gatekeeper: {parsed_data}   # same schema as Prompt 1 output.parsed_data
+                - Reference documents: {documents}
+                - Conversation history: {conversation_history}
+                - Latest user message: {query}
+                - Language: {language}
+                - Uploaded files metadata & contents summary (if available)
+                # list of filename, type(image/pdf/text/receipt), captured_date, summary, shows, amounts, ibans, urls, phones
+
+                DRAFTING RULES:
+                1) Use ONLY provided data. If something is still missing, insert placeholder "[…]".
+                2) Dates: DD/MM/YYYY. Amounts: Euro with thousand separators & two decimals (e.g., 1.234,56 €).
+                3) Enumerate transactions, phone numbers, emails, URLs, and evidence items.
+                4) Legal basis (succinct): cite άρθρο 386 ΠΚ (απάτη) και/ή 386Α ΠΚ (απάτη με υπολογιστή). Αναφέρε “κατ’ εξακολούθηση” όπου αρμόζει.
+                5) Include explicit request for investigation by Διεύθυνση Δίωξης Ηλεκτρονικού Εγκλήματος.
+                6) Close with formula: “ΓΙΑ ΤΟΥΣ ΛΟΓΟΥΣ ΑΥΤΟΥΣ… ΜΗΝΥΩ…” and a signature block.
+                7) Integrate uploaded files automatically:
+                - Section III “Αποδεικτικά μέσα”: περιγραφή ανά αρχείο (είδος, ημερομηνία, τι απεικονίζει/περιέχει, σύνδεση με απάτη).
+                - Section VI “Συνημμένα”: λίστα με α/α, τίτλο, μορφή.
+                - Αν είναι κείμενο: σύντομη περίληψη σχετικού περιεχομένου.
+                - Αν είναι εικόνα: τι απεικονίζει (π.χ. ψευδής σελίδα login, phishing email).
+                - Αν είναι οικονομικό έγγραφο: ποσό, ημερομηνία, IBAN/λογαριασμός που φαίνεται.
+                8) Strict chronological narration in Section II.
+
+                OUTPUT TEMPLATE (headings may be adapted, content must remain in Greek):
+
+                ΠΡΟΣ: Τον/Την κ. Εισαγγελέα Πρωτοδικών [{to}]
+                Του μηνυτή: [{procecutor}]
+                Κατά: [{accused}]
+
+                I. Αντικείμενο
+                [Σύντομη περίληψη της καταγγελίας με σαφή αναφορά στο phishing/cyber fraud, πλατφόρμα, βασικά ποσά.]
+
+                II. Πραγματικά περιστατικά (Χρονολογική παράθεση)
+                1) [DD/MM/YYYY HH:MM]: […]
+                2) [DD/MM/YYYY HH:MM]: […]
+                […]
+                Συναλλαγές:
+                - [#1] Ημερ.: […], Ποσό: [… €], Τρόπος/IBAN: […], Αναφορά: […]
+                - [#2] […]
+
+                III. Αποδεικτικά μέσα
+                [Κατάλογος και περιγραφή των αρχείων, με α/α, τύπο, τι δείχνουν, πώς συνδέονται, ημερομηνίες, ποσά/IBAN αν προκύπτουν.]
+
+                IV. Νομική θεμελίωση
+                Τα ανωτέρω συγκροτούν τα αδικήματα της απάτης (άρθρο 386 ΠΚ) και/ή απάτης με υπολογιστή (άρθρο 386Α ΠΚ), ενδεχομένως κατ’ εξακολούθηση, βάσει των επαναλαμβανόμενων πράξεων.
+
+                V. Αιτήματα
+                1) Να διαταχθεί προκαταρκτική εξέταση/προανάκριση και ψηφιακή διερεύνηση από τη Διεύθυνση Δίωξης Ηλεκτρονικού Εγκλήματος.
+                2) Να αναζητηθούν στοιχεία κατόχων λογαριασμών/IBAN, IP addresses, πάροχοι, και να ληφθούν οι νόμιμες δικονομικές ενέργειες.
+                3) Να ασκηθεί ποινική δίωξη κατά των υπαιτίων.
+                4) Να μου κοινοποιούνται οι εξελίξεις στη δηλωθείσα διεύθυνση/email.
+
+                VI. Συνημμένα
+                [Αριθμημένος κατάλογος αρχείων: #, Τίτλος, Μορφή.]
+
+                Ημερομηνία: [] – Τόπος: [] ({place_date})
+                Ο Μηνυτής
+                [Υπογραφή]
+
+                STYLE:
+                - Formal Greek legal style. Clear sections, numbering, precision.
+                - No fabrication; use placeholders “[…]” only when strictly necessary.
+
+                FINAL OUTPUT:
+                Return ONLY the final complaint text in Greek, no extra commentary.
+                '''.format(parsed_data = request.app.state.user_data_dict[request_data['conversation_id']]['parsed_data'],
+                        documents = texts,
+                            conversation_history = request_data['conversation_history'],
+                            query = text,
+                                language = 'greek',
+                                to = str(request.app.state.user_data_dict[request_data['conversation_id']]['parsed_data']['prosecutor_place']),
+                                procecutor = str(request.app.state.user_data_dict[request_data['conversation_id']]['parsed_data']['complainant']),
+                                accused = str(request.app.state.user_data_dict[request_data['conversation_id']]['parsed_data']['complainant']),
+                                place_date = str(request.app.state.user_data_dict[request_data['conversation_id']]['parsed_data']['prosecutor_place'])
+                                )
+
+            response = model.invoke(prompt_2)
+            response_content = str(response.content).strip()
+            file_list = [persist_upload(file) for file in files] if files else []
+
+            out_path, filename = create_word_file(response_content, file_list)
+            s3_client = get_client()
+            upload(out_path+f'//{filename}',filename,s3_client)
+            url = download(filename,s3_client)
+            s3_client.close()
+            response_content += f'\n Below you can download a word file of the document too from the following URL: {url}'
+        
+            async def fake_stream():
+                yield f"data: {json.dumps({'response': response_content, 'status': 200})}\n\n"
+
+            return StreamingResponse(fake_stream(), media_type="text/event-stream")
+
+        else:
+            async def fake_stream():
+                yield f"data: {json.dumps({'response': request.app.state.user_data_dict[request_data['conversation_id']]['questions_el'], 'status': 200})}\n\n"
+
+            return StreamingResponse(fake_stream(), media_type="text/event-stream")
 
 
     if request_data['conversation_type'] == 'normal':
@@ -363,7 +507,8 @@ async def chat_endpoint(request_data: Message = Depends(parse_message_form),file
             return StreamingResponse(fake_stream(), media_type="text/event-stream")
         else:
             raise HTTPException(status_code=500, detail="Unexpected pipeline output.")
-        
+
+
 @router.post('/logout')
 async def logout(response:Response):
     try:

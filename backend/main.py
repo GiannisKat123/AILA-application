@@ -53,10 +53,10 @@ async def lifespan(app: FastAPI):
             # cohere_client, reranker = load_reranker_model(type = 'cohere')
             reranker = load_reranker_model(type = 'cross-encoder')['reranker_model']
             
-
         pipeline = LLM_Pipeline(indexes, reranker, cohere_client)
         app.state.pipeline = pipeline
         app.state.app = pipeline.initialize_workflow()
+        app.state.user_data_dict = {}
         print("✅ Vector index and pipeline loaded.")
     else:
         print(f"⏭️  Skipping runtime init (INIT_MODE={settings.INIT_MODE}).")

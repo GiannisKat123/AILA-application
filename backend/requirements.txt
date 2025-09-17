@@ -45,4 +45,6 @@ numpy
 langdetect
 langgraph
 langchain-tavily
+boto3
+python-docx
 git+https://github.com/brandonstarxel/chunking_evaluation.git
