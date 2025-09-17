@@ -1,4 +1,6 @@
-from pydantic_settings import BaseSettings
+# config.py  — Pydantic v2 & pydantic-settings v2
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     """
@@ -6,79 +8,37 @@ class Settings(BaseSettings):
     or a `.env` file. Provides strongly typed access to environment values.
     """
 
-    OLLAMA_SERVER_URL: str
-    """URL of the Ollama server for model inference."""
+    # Pydantic v2 config (replaces inner class Config)
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",          # ignore unexpected env vars instead of erroring
+    )
 
-    FRONTEND_URL: str
-    """Base URL of the frontend client application."""
-
-    DB_USERNAME: str
-    """Database username credential."""
-
-    DB_PASSWORD: str
-    """Database password credential."""
-
-    DB_HOST: str
-    """Hostname or IP address of the database server."""
-
-    DB_DATABASE_NAME: str
-    """Name of the application’s database."""
-
-    DB_DRIVER_NAME: str
-    """Database driver (e.g., `postgresql`, `mysql`, `sqlite`)."""
-
-    ACCESS_TOKEN_EXPIRE_MINUTES: int
-    """Duration (in minutes) before access tokens expire."""
-
-    API_KEY: str
-    """OPEN API key for application-level integrations."""
-
-    SECRET_KEY: str
-    """Secret key used for signing tokens and securing sensitive operations."""
-
-    ALGORITHM: str
-    """Cryptographic algorithm used for JWT or token signing (e.g., `HS256`)."""
-
-    VITE_API_URL: str
-    """API base URL injected into the frontend (e.g., Vite builds)."""
-
-    APP_PASSWORD: str
-    """Application-specific password (e.g., for email sending)."""
-
-    SENDER_EMAIL: str
-    """Default email address used for sending application emails."""
-
-    COHERE_API_KEY: str
-    """API key for accessing Cohere’s services."""
-
-    COHERE_MODEL_ID: str
-    """Identifier of the Cohere model to use."""
-
-    INIT_MODE: str
-    """Initialization mode (e.g., `dev`, `prod`, `test`)."""
-
-    OPEN_AI_MODEL: str
-    """OpenAI model name (e.g., `gpt-4o-mini`)."""
-
-    TAVILY_API_KEY: str
-    """API key for Tavily API integration."""
-
-    AWS_PROFILE:str
-
-    AWS_ACCESS_KEY: str
-    
-    AWS_SECRET_KEY: str
-    
-    BUCKET_NAME : str
-    
-    REGION: str
-
-    class Config:
-        """
-        Configuration for Pydantic settings. Loads values from `.env` file by default.
-        """
-        env_file = ".env"
-
+    OLLAMA_SERVER_URL: str = Field(..., description="URL of the Ollama server for model inference.")
+    FRONTEND_URL: str = Field(..., description="Base URL of the frontend client application.")
+    DB_USERNAME: str = Field(..., description="Database username credential.")
+    DB_PASSWORD: str = Field(..., description="Database password credential.")
+    DB_HOST: str = Field(..., description="Hostname or IP address of the database server.")
+    DB_DATABASE_NAME: str = Field(..., description="Name of the application’s database.")
+    DB_DRIVER_NAME: str = Field(..., description="Database driver (e.g., `postgresql`, `mysql`, `sqlite`).")
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(..., description="Duration (in minutes) before access tokens expire.")
+    API_KEY: str = Field(..., description="OPEN API key for application-level integrations.")
+    SECRET_KEY: str = Field(..., description="Secret key for signing tokens and securing sensitive operations.")
+    ALGORITHM: str = Field(..., description="Cryptographic algorithm used for JWT or token signing (e.g., `HS256`).")
+    VITE_API_URL: str = Field(..., description="API base URL injected into the frontend (e.g., Vite builds).")
+    APP_PASSWORD: str = Field(..., description="Application-specific password (e.g., for email sending).")
+    SENDER_EMAIL: str = Field(..., description="Default email address used for sending application emails.")
+    COHERE_API_KEY: str = Field(..., description="API key for accessing Cohere’s services.")
+    COHERE_MODEL_ID: str = Field(..., description="Identifier of the Cohere model to use.")
+    INIT_MODE: str = Field(..., description="Initialization mode (e.g., `dev`, `prod`, `test`).")
+    OPEN_AI_MODEL: str = Field(..., description="OpenAI model name (e.g., `gpt-4o-mini`).")
+    TAVILY_API_KEY: str = Field(..., description="API key for Tavily API integration.")
+    AWS_PROFILE: str = Field(..., description="AWS named profile.")
+    AWS_ACCESS_KEY: str = Field(..., description="AWS access key ID.")
+    AWS_SECRET_KEY: str = Field(..., description="AWS secret access key.")
+    BUCKET_NAME: str = Field(..., description="Default S3 bucket name.")
+    REGION: str = Field(..., description="AWS region name (e.g., `eu-central-1`).")
 
 # Singleton instance of Settings, ready to be imported across the app
 settings = Settings()

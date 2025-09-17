@@ -21,6 +21,7 @@ extensions = [
     "sphinx.ext.napoleon",  # Google/NumPy docstrings
     "sphinx.ext.viewcode",  # Source links
     "sphinx.ext.intersphinx",
+    "sphinx_autodoc_typehints",
     "sphinx.ext.linkcode",   # <-- add this,
 ]
 
@@ -79,6 +80,23 @@ source_suffix = {
     ".rst": "restructuredtext",
     ".md": "markdown",
 }
+
+
+# --- Mock imports that are optional/heavy ---
+autodoc_mock_imports = [
+    "sentence_transformers",
+    "openai",
+    "jose",
+    # add any other runtime-only deps you see errors for:
+    # "sqlalchemy", "psycopg2", "alembic", "pinecone", "uvicorn", etc.
+]
+
+autodoc_default_options = {
+    "members": True,
+    "undoc-members": True,
+    "show-inheritance": True,
+}
+
 
 myst_enable_extensions = [
     "colon_fence",          # ::: fenced blocks
