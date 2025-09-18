@@ -48,4 +48,6 @@ langchain-tavily
 boto3
 python-docx
 json-repair
+pypdf
+python-multipart
 git+https://github.com/brandonstarxel/chunking_evaluation.git
