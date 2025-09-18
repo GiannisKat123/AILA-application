@@ -117,6 +117,7 @@ function createApi(): AxiosInstance {
     // baseURL: 'https://ailademo.fly.dev', // ✅ Production deployment
     baseURL: 'http://localhost:8080', // ✅ Local development
     // baseURL: '/', // ✅ Default: relative path (frontend proxy)
+    // baseURL: 'http://ailabot.upatras.gr'
     withCredentials: true, // Include cookies for auth
   })
 }
