@@ -69,6 +69,7 @@ class Settings(BaseSettings):
     AWS_SECRET_KEY: str = Field(..., description="AWS secret access key.")
     BUCKET_NAME: str = Field(..., description="Default S3 bucket name.")
     REGION: str = Field(..., description="AWS region name (e.g., `eu-central-1`).")
+    HF_TOKEN: str = Field(..., description="Hugging Face Token for accessing the embedding and reranking models")
 
 # Singleton instance of Settings, ready to be imported across the app
 settings = Settings()

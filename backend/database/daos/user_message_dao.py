@@ -67,6 +67,7 @@ from sqlalchemy.orm import Session, aliased
 from backend.database.entities.messages import UserMessage
 from uuid import UUID
 from sqlalchemy import desc, asc
+from typing import List
 
 class UserMessagesDao:
     """
@@ -100,6 +101,32 @@ class UserMessagesDao:
             return userMessage
         except Exception as e:
             print(f"Error in UserMessagesDao.createMessage. Error Message: {e}")
+            raise e
+        
+    def fetchMessageById(self, session: Session, id: UUID) -> List[UserMessage]:
+        """Return all `UserMessage` rows matching a given UUID.
+
+        This mirrors the existing behavior used elsewhere in your codebase
+        (returns a list that may be empty).
+
+        Args:
+            session: Active SQLAlchemy session.
+            id: UUID of the message to fetch.
+
+        Returns:
+            list[UserMessage]: Zero or more matches (usually 0 or 1).
+
+        Raises:
+            Exception: Propagates unexpected database errors.
+        """
+        try:
+            return (
+                session.query(UserMessage)
+                .filter(UserMessage.id == id)
+                .all()
+            )
+        except Exception as e:
+            print("Error in UserMessagesDao.fetchMessageById (id=%s)", id)
             raise e
 
     def fetchMessagesByConversationId(self, session: Session, conversation_id: UUID):
