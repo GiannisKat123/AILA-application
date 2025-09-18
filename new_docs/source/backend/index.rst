@@ -24,6 +24,7 @@ The following tree contains the full API reference for the backend package.
 It is auto-generated from the FastAPI codebase using `sphinx-autoapi`.  
 
 - :doc:`backend/api </backend_api/backend/api/index>`
+- :doc:`backend/reinforcement_learning </backend_api/backend/reinforcement_learning/index>`
 - :doc:`backend/cache_models </backend_api/backend/cache_models/index>`
 - :doc:`backend/crypt </backend_api/backend/crypt/index>`
 - :doc:`backend/database </backend_api/backend/database/index>`

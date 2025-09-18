@@ -2,5 +2,5 @@ fly.toml
 .env
 nginx
 test.py
-
+.pyc
 conversations.txt
