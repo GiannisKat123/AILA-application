@@ -237,6 +237,7 @@ async def parse_message_form(
     conversation_type: Optional[str] = Form(None),
     web_search_tool: Optional[str] = Form(None),
     conversation_history: Optional[str] = Form(None),
+    conversation_id: Optional[str] = Form(None)
 ) -> dict:
     """Parse and validate multipart/form-data for /request.
 
@@ -244,6 +245,7 @@ async def parse_message_form(
         - presence: message, conversation_type
         - web_search_tool: coerces to bool (1/true/yes/on)
         - conversation_history: JSON array (defaults to [])
+        - conversation_id: The id of the conversation
 
     Returns:
         dict with normalized fields ready for downstream use.
@@ -255,6 +257,7 @@ async def parse_message_form(
     missing = [k for k,v in {
         "message": message,
         "conversation_type": conversation_type,
+        "conversation_id": conversation_id
     }.items() if v in (None, "")]
     if missing:
         raise HTTPException(status_code=400, detail={"error":"missing_fields","fields":missing})
@@ -276,6 +279,7 @@ async def parse_message_form(
         "conversation_type": conversation_type,
         "web_search_tool": web_search,
         "conversation_history": history,
+        "conversation_id": conversation_id
     }
 
 
@@ -374,8 +378,6 @@ async def chat_endpoint(request_data: Message = Depends(parse_message_form),file
             with open(path+f'/{doc}',encoding='utf-8') as file:
                 text = file.read()
             texts.append(text)  
-
-        file_list = [persist_upload(file) for file in files] if files else []
 
         prompt = "Describe the files attached by the user"
         messages = build_messages(prompt,file_list)

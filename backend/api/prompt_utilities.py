@@ -76,7 +76,21 @@ def persist_upload(f: UploadFile) -> FileRec:
     return FileRec(original=f.filename or new_name, path=dest, mime=(f.content_type or "").lower())
 
 
-def to_data_url(path:str, mime:str) -> str:
+def normalize_mime(mt: str) -> str:
+    """
+    Keep only 'image/<subtype>' and map oddities (jpg -> jpeg).
+    Strip any extra parameters after ';'.
+    """
+    if not mt:
+        return "image/png"  # sane default
+    core = mt.split(";")[0].strip().lower()
+    if core == "image/jpg":
+        core = "image/jpeg"
+    # allow only common types (tighten if needed)
+    allowed = {"image/png", "image/jpeg", "image/webp", "image/gif"}
+    return core if core in allowed else "image/png"
+
+def to_data_url(path: str, mime: str) -> str:
     """
     Convert a file into a base64-encoded data URL.
 
@@ -87,9 +101,11 @@ def to_data_url(path:str, mime:str) -> str:
     Returns:
         str: Data URL string (data:{mime};base64,...).
     """
+    mime = normalize_mime(mime)
     with open(path, 'rb') as f:
         b64 = base64.b64encode(f.read()).decode('utf-8')
-    return f'data:{mime};base64,{b64}'
+    return f"data:{mime};base64,{b64}"
+
 
 def transcribe_audio(path:str) -> str:
     """

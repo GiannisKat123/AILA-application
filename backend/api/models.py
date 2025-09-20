@@ -8,6 +8,7 @@ validation and automatic OpenAPI schema generation.
 from pydantic import BaseModel
 from typing import List, Optional
 from pydantic import Field, HttpUrl
+from fastapi import Form
 
 class FileRec(BaseModel):
     """Metadata for an uploaded/stored file."""
@@ -101,7 +102,7 @@ class Message(BaseModel):
     """A flag that defines whether the online mode should be enabled or not"""
     conversation_type: str
     """The type of the conversation (normal or other depending on the tool used)"""
-    conversation_id: str
+    conversation_id: str = Form(...)
     """The ID of the conversation the message belongs to."""
 
 
