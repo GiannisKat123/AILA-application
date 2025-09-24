@@ -383,7 +383,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const createMessage = async (conversation_id: string, text: string, role: string, id: string, feedback: string | null) => {
         try {
             const res = await createMessageAPI(conversation_id, text, role, id, feedback);
-            const newMessage = { conversation_id, message: text, role, id, feedback, timestamp: new Date().toISOString() };
+            if (!res) throw new Error("Message was not created properly2");
+            console.log(res)
+            const newMessage = { conversation_id, message:text, role, id, feedback, timestamp: new Date().toISOString() };
             if (res) {
                 setMessages(prev => [...(prev ?? []), newMessage])
             }

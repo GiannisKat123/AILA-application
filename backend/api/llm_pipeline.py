@@ -93,7 +93,7 @@ def load_reranker_model(type:str):
         ft = co.finetuning.get_finetuned_model(settings.COHERE_MODEL_ID)
         return {'cohere_client':co,'fituned_model':ft}
     if type == 'cross-encoder':
-        reranker_model = CrossEncoder('backend\cached_reranker_models\IoannisKat1__bge-reranker-basefinetuned-new')
+        reranker_model = CrossEncoder('./backend/cached_reranker_models/IoannisKat1__bge-reranker-basefinetuned-new')
         return {'reranker_model':reranker_model}
 
 def initialize_indexes(top_k:int):
