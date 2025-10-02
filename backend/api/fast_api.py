@@ -56,6 +56,7 @@ async def login(data:UserCredentials, response:Response):
         200: {'user_details': {...}}
         401: HTTPException with error detail
     """
+    print(data)
     auth = login_user(username=data.username, password=data.password)
     print(auth)
     if auth['authenticated']:
@@ -362,7 +363,7 @@ async def chat_endpoint(request_data: Message = Depends(parse_message_form),file
 
         if request_data['conversation_id'] not in request.app.state.user_data_dict.keys(): request.app.state.user_data_dict[request_data['conversation_id']] = {}
 
-        prompt = """Find the language used in the following query: {message}"""
+        prompt = """Find the language used in the following query: {message}. Give me only the detected language."""
         
         response = model.invoke(prompt.format(message=request_data['message']))
         
@@ -702,6 +703,11 @@ async def chat_endpoint(request_data: Message = Depends(parse_message_form),file
             - Keep the most relevant information that can help you answer the user query. Keep also related metadata in your response.
 
             If you have metadata related to the context, include it in your response as well.
+
+            NOTES:
+            - When translating the following terms in Greek make sure the follow the following format:
+                -) Greek Cybercrime Legislation -> Ελληνικός Ποινικός Κώδικας
+                -) GDPR or General Data Protection Regulation -> Γενικός Κανονισμός Προστασίας Δεδομένων
 
             Generate your answer below in {language}:
         """
