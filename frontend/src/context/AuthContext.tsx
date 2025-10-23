@@ -452,7 +452,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
      * @param conversation_name - new title
      * @returns `void` on success or {@link ErrorMessage} on failure
      */
-    const renameConversation = async (conversation_id: string, conversation_name: string): Promise<void | ErrorMessage> => {
+    const renameConversation = async (conversation_name: string, conversation_id: string): Promise<void | ErrorMessage> => {
         try {
             // console.log("Renaming Conversation", conversation_name, conversation_id);
             const res = await renameConversationAPI(conversation_name, conversation_id);

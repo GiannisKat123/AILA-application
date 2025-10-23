@@ -22,7 +22,7 @@ Key Notes
 
 from fastapi import APIRouter, Response, HTTPException, Cookie, Request, UploadFile, File, Form, Depends
 import json
-from backend.api.models import DocumentFeedbackDetails,UserFeedback,UserOpenData,VerifCode,UserCredentials, ConversationCreationDetails, UserData ,NewMessage, Message, UpdateConversationDetails
+from backend.api.models import UserMessageString,DocumentFeedbackDetails,UserFeedback,UserOpenData,VerifCode,UserCredentials, ConversationCreationDetails, UserData ,NewMessage, Message, UpdateConversationDetails
 from backend.database.core.funcs import create_document_feedback,update_conv,set_feedback,resend_ver_code,check_verification_code, check_create_user_instance ,login_user, update_token, get_user_messages, get_conversations, create_conversation, create_message
 from backend.api.utils import create_access_token, verify_token
 from fastapi.responses import StreamingResponse,JSONResponse
@@ -750,3 +750,22 @@ async def logout(response:Response):
     except HTTPException as e:
         raise HTTPException(status_code=403, detail=e.detail) 
 
+@router.post('/get_conversation_title')
+async def create_conversation_title(request_data:UserMessageString):
+    model = ChatOpenAI(model=settings.OPEN_AI_MODEL,api_key=settings.API_KEY, temperature=0.7)
+    prompt =  """You are an assistant that generates short, descriptive titles for conversations. 
+    Based only on the first user query, create a title that is concise, clear, and under 8 words. 
+    Avoid using question marks, filler words, or unnecessary detail. 
+    The title should capture the main topic of the query and be suitable for a conversation thread title.
+
+    User query: "{first_query}"
+    Conversation title:
+    """
+
+    try:
+        response = model.invoke(prompt.format(first_query=request_data.message))
+        return response
+    except Exception as e:
+        raise HTTPException(status_code=403,detail=e.detail)
+    
+    

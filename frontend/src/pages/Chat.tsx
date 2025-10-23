@@ -282,7 +282,6 @@ const Chat = () => {
         const query_id = messageFeedbackDetails['query_id'];
         const botAnswer_id = messageFeedbackDetails['generated_answer_id'];
         var document_text;
-        // console.log(theme, fileDoc ? fileDoc.name : null, fileDoc, context)
         if (!fileDoc) {
             document_text = "";
         }
@@ -356,6 +355,28 @@ const Chat = () => {
             controllerRef.current = controller;
             setIsStreaming(true);
 
+            if (messages.length == 0) {
+                const restitle = await fetch(`${api.defaults.baseURL}/get_conversation_title`, {
+                    method: "POST",
+                    signal: controller.signal,
+                    credentials: "include",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ message: userMessage }), // no JSON.stringify, no Content-Type header
+                });
+
+                if (!restitle.ok || !restitle.body) {
+                    setBotResponse("ERROR FROM BOT WHEN CREATING AUTOMATED CONVERSATION TITLE");
+                    return;
+                }
+
+                const conversation_title_bot = await restitle.json();
+                currentConversation.conversation_name = conversation_title_bot.content;
+                console.log("CREATED TITLE FROM BOT", conversation_title_bot.content)
+                await renameConversation(conversation_title_bot.content, currentConversation.conversation_id);
+            }
+
             let type;
             let conversation_id;
             if (currentConversation.conversation_type === '') {
@@ -365,9 +386,6 @@ const Chat = () => {
                 conversation_id = currentConversation.conversation_id
                 type = currentConversation.conversation_type;
             }
-
-
-            console.log(messages);
 
             const form = new FormData();
             form.append("message", userMessage);
@@ -380,10 +398,6 @@ const Chat = () => {
                 for (const f of uploadedFiles) {
                     form.append("files", f); // multiple files allowed
                 }
-            }
-
-            for (const [k, v] of form.entries()) {
-                console.log("FD:", k, v instanceof File ? v.name : v);
             }
 
             const res = await fetch(`${api.defaults.baseURL}/request`, {
@@ -430,8 +444,6 @@ const Chat = () => {
                         console.error("No conversation_id — cannot persist messages.");
                         return; // or throw new Error("Missing conversation_id")
                     }
-                    console.log(conversation_id, userMessage, 'user', newMessages[0].id, newMessages[0].feedback)
-                    console.log(conversation_id, fullBotResponse, 'assistant', newMessages[1].id, newMessages[1].feedback);
                     await createMessage(conversation_id, userMessage, 'user', newMessages[0].id, newMessages[0].feedback);
                     await createMessage(conversation_id, fullBotResponse, 'assistant', newMessages[1].id, newMessages[1].feedback);
                     await fetchUserMessages(conversation_id);
@@ -495,7 +507,6 @@ const Chat = () => {
         e?: React.MouseEvent | React.FormEvent
     ) => {
         e?.preventDefault();
-        // console.log(feedback);
         try {
             await userFeedback(message_index, conversation_id, feedback);
             setMessages((prev) =>
@@ -517,8 +528,7 @@ const Chat = () => {
             setEditingConvId('');
             return;
         }
-        // console.log(conversationId, editedTitle.trim());
-        await renameConversation(conversationId, editedTitle.trim());
+        await renameConversation(editedTitle.trim(), conversationId);
 
         if (conversations) {
             for (let i = 0; i < (conversations?.length ?? 0); i++) {

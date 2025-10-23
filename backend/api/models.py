@@ -152,3 +152,6 @@ class UserFeedback(BaseModel):
     """The conversation to which the message belongs."""
     feedback: str | None
     """Feedback value (True=positive, False=negative, None=unset)."""
+
+class UserMessageString(BaseModel):
+    message:str
