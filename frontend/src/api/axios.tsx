@@ -1,9 +1,16 @@
-import axios from 'axios';
+import axios, {type AxiosInstance} from 'axios';
 
-const api = axios.create({
-    baseURL: "https://ailademo.fly.dev", // Update with your backend URL
-    // baseURL: "http://localhost:8080",
-    withCredentials: true
-})
+function createApi(): AxiosInstance{
+    return axios.create({
+        // baseURL: 'https://ailademo.fly.dev', // ✅ Production deployment
+        baseURL: 'http://localhost:8080', // ✅ Local development
+        // baseURL: '/', // ✅ Default: relative path (frontend proxy)
+        // baseURL: 'http://ailabot.upatras.gr',
+        withCredentials:true
+    })
+}
 
-export default api;
+export const api: AxiosInstance = createApi()
+export default api
+export {createApi}
+export type {AxiosInstance}

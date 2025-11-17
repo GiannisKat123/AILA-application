@@ -1,82 +1,83 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import { loginAPI, getUserMessagesAPI, userFeedbackAPI, resendCodeAPI, verifyAPI, logoutAPI, registerAPI, verifyUser, createConversationAPI, createMessageAPI, getConversationsAPI } from '../services/AuthService';
-import type { LoginAPIOutput, UserProfile, Message, Conversations, ErrorMessage } from '../models/Types';
+import {
+    loginAPI,
+    sendCodeAPI,
+    verifyAPI,
+    logoutAPI,
+    registerAPI,
+    verifyUser,
+} from '../services/AuthService.jsx';
+import type {
+    LoginAPIOutput,
+    UserProfile,
+    ErrorMessage,
+} from '../models/Types.jsx';
 
-
-interface AuthContextType {
+export interface AuthContextType {
     user: UserProfile | null;
-    userMessages: Message[] | null;
-    conversations: Conversations[] | null;
     loading: boolean;
-    createConversation: (conversation_name: string, username: string) => Promise<Conversations | undefined>;
-    createMessage: (conversation_name: string, text: string, role: string, id: string, feedback: boolean | null) => Promise<void>;
-    fetchUserMessages: (conversation_name: string) => Promise<void>;
     loginUser: (username: string, password: string) => Promise<LoginAPIOutput | ErrorMessage> | null;
     logoutUser: () => Promise<void>;
-    fetchConversations: (username: string) => Promise<void>;
-    RegisterUser: (username: string, password: string, email: string) => Promise<boolean | ErrorMessage>;
-    verifyCodeUser: (username: string, code: string) => Promise<boolean|ErrorMessage>;
-    resendCode: (username: string, email: string) => Promise<void>;
-    userFeedback: (message_id: string, conversation_id: string, feedback: boolean) => Promise<void>;
+    RegisterUser: (username: string, password: string, email: string, role: string) => Promise<boolean | ErrorMessage>;
+    verifyCodeUser: (username: string, code: string) => Promise<boolean | ErrorMessage>;
+    sendCode: (username: string, email: string, role: string) => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<UserProfile | null>(null);
-    const [userMessages, setMessages] = useState<Message[] | null>(null);
-    const [conversations, setConversations] = useState<Conversations[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const RegisterUser = async (username: string, password: string, email: string): Promise<boolean | ErrorMessage> => {
+    const RegisterUser = async (username: string, password: string, email: string, role: string): Promise<boolean | ErrorMessage> => {
         try {
-            const res = await registerAPI(username, password, email);
+            const res = await registerAPI(username, password, email, role);
             console.log(res);
             if (res && res === true) {
-                setUser({ username: username, email: email, verified: false })
+                setUser({ username: username, email: email, verified: false, role: role })
                 return true;
             }
-            else if (res && typeof res === 'object' && 'error_message' in res){
+            else if (res && typeof res === 'object' && 'error_message' in res) {
                 setUser(null);
-                return {error_message:res.error_message}
+                return { error_message: res.error_message }
             }
-            else{
+            else {
                 setUser(null);
-                return {error_message:'Something went wrong in registration'}
+                return { error_message: 'Something went wrong in registration' }
             }
         }
         catch (err) {
             setUser(null);
-            return {error_message:String(err)};
+            return { error_message: String(err) };
         }
     }
 
-    const verifyCodeUser = async (username: string, code: string): Promise<boolean|ErrorMessage> => {
+    const verifyCodeUser = async (username: string, code: string): Promise<boolean | ErrorMessage> => {
         try {
             const res = await verifyAPI(username, code);
-            console.log("RESULT",res);
             if (res === true) {
+                setUser(prev => prev ? { ...prev, verified: true } : prev);
                 return true;
-            }   
-            else if (res && typeof res == 'object' && 'error_message' in res){
-                return {error_message:res.error_message}
             }
-            else{
-                console.log("WHAT",res);
-                return {error_message:'Something went wrong in verification'}
+            else if (res && typeof res == 'object' && 'error_message' in res) {
+                return { error_message: res.error_message }
+            }
+            else {
+                console.log("WHAT", res);
+                return { error_message: 'Something went wrong in verification' }
             }
         }
         catch (err) {
             console.error("Verification failed", err);
             setUser(null);
-            return {error_message:String(err)};
+            return { error_message: String(err) };
         }
     }
 
-    const resendCode = async (username: string, email: string): Promise<void> => {
+    const sendCode = async (username: string, email: string, role: string): Promise<void> => {
         try {
-            const res = await resendCodeAPI(username, email);
+            const res = await sendCodeAPI(username, email, role);
             if (res) {
                 return;
             }
@@ -91,127 +92,44 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }
 
-    const userFeedback = async (message_id: string, conversation_id: string, feedback: boolean | undefined): Promise<void> => {
-        try {
-            const res = await userFeedbackAPI(message_id, conversation_id, feedback);
-            if (res) {
-                return;
-            }
-            else {
-                throw new Error("userFeedback failed: No response from API");
-            }
-        }
-        catch (err) {
-            console.error("userFeedback failed", err);
-            setUser(null);
-            throw err;
-        }
-    }
-
-
-
     const loginUser = async (username: string, password: string): Promise<LoginAPIOutput | ErrorMessage> => {
+        console.log("Logging in user:", username);
         try {
             const res = await loginAPI(username, password);
-            console.log(res)
             if (res && typeof res === 'object' && "user_details" in res) {
-                console.log(res.user_details)
-                setUser({ username: res.user_details.username, email: res.user_details.email, verified: res.user_details.verified })
+                setUser({ username: res.user_details.username, email: res.user_details.email, verified: res.user_details.verified, role: res.user_details.role })
                 return res;
             }
             else if (res && typeof res === 'object' && "error_message" in res) {
                 setUser(null);
-                return {error_message : res.error_message}
+                return { error_message: res.error_message }
             }
             // Ensure a return value in all cases
             setUser(null);
-            return {error_message : "Unknown error during login"};
+            return { error_message: "Unknown error during login" };
         }
         catch (err) {
             console.error("Login failed", err);
             setUser(null);
-            return {error_message : String(err)}
+            return { error_message: String(err) }
         }
     }
 
-    const createConversation = async (conversation_name: string, username: string): Promise<Conversations | undefined> => {
-        try {
-            const res = await createConversationAPI(conversation_name, username);
-            if (res) {
-                setConversations(prev => [res, ...prev]);
-                return res;
-            }
-            else {
-                throw new Error("Conversation was not created properly");
-            }
-        }
-        catch (err) {
-            console.error(`Could not create new Conversation with name:${conversation_name}. Error:`, err);
-        }
-    }
-
-    const fetchConversations = async (username: string) => {
-        try {
-            const res = await getConversationsAPI(username);
-            if (res) {
-                setConversations(res)
-            }
-        }
-        catch (err) {
-            console.error(`Could not fetch Conversations from user:${username}. Error:`, err);
-        }
-    }
-
-    const createMessage = async (conversation_name: string, text: string, role: string, id: string, feedback: boolean | null) => {
-        try {
-            const res = await createMessageAPI(conversation_name, text, role, id, feedback);
-            const newMessage = { conversation_name, message: text, role, id, feedback, timestamp: new Date().toISOString() };
-            if (res) {
-                setMessages(prev => [...(prev ?? []), newMessage])
-            }
-            else {
-                throw new Error("Message was not created properly");
-            }
-        }
-        catch (err) {
-            console.error(`Could not create new Message with name:${conversation_name}, message: ${text}. Error:`, err);
-        }
-    }
-
-    const fetchUserMessages = async (conversation_name: string) => {
-        try {
-            const messages = await getUserMessagesAPI(conversation_name);
-            if (messages) {
-                console.log(messages)
-                setMessages(messages);
-            }
-            else {
-                setMessages(null);
-            }
-        }
-        catch (err) {
-            console.error(`Messages were not fetched from user in conversation ${conversation_name}`, err);
-            setMessages(null);
-        }
-    }
 
     const logoutUser = async () => {
         try {
             const res = await logoutAPI();
             if (res) {
                 setUser(null);
-                setMessages(null);
             }
             else {
                 setUser(null);
-                setMessages(null);
                 console.log("Something went completely wrong");
             }
 
         }
         catch (err) {
             setUser(null);
-            setMessages(null);
             console.error("Logout failed", err);
         }
     }
@@ -220,7 +138,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const initialize = async () => {
             try {
                 const res = await verifyUser();
-                console.log("User Verified", res);
                 if (res) {
                     setUser(res);
                 }
@@ -237,7 +154,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }, [])
 
     return (
-        <AuthContext.Provider value={{ user, userMessages, userFeedback, resendCode, verifyCodeUser, RegisterUser, loginUser, logoutUser, fetchUserMessages, loading, conversations, createConversation, createMessage, fetchConversations }}>
+        <AuthContext.Provider value={{ user, sendCode, verifyCodeUser, RegisterUser, loginUser, logoutUser, loading }}>
             {children}
         </AuthContext.Provider>
     )

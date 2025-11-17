@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from ..entities.user import User
-import uuid
 from backend.crypt.encrypt_decrypt import EncryptionDec
+from typing import List
 
 class UserDao:
     def createUser(self,session:Session,user_data:User):
@@ -14,56 +14,43 @@ class UserDao:
             print(f"Error in UserDao.createUser functionality, Error Message:{e}")
             raise e
         
-    def fetchUser(self,session:Session,username:str):
+    def fetchById(self,session:Session,user_id:str) -> User:
+        try:
+            user = session.query(User).filter(User.id == user_id).one_or_none()
+            return user
+        except Exception as e:
+            print(f"Error in UserDao.fetchById. Error Massage: {e}")
+            raise e
+
+    def fetchUser(self,session:Session,username:str) -> User:
         try: 
-            users = session.query(User).filter(User.user_name==username).limit(1).all()
-            return users
+            user = session.query(User).filter(User.user_name==username).one_or_none()
+            return user
         except Exception as e:
             print(f"Error in UserDao.fetchUser. Error Massage: {e}")
             raise e
-        
-    def fetchUserByEmail(self,session:Session,email:str):
+
+    def fetchUserByEmail(self,session:Session,email:str) -> User:
         try: 
-            users = session.query(User).filter(User.email==email).limit(1).all()
+            users = session.query(User).filter(User.email==email).one_or_none()
             return users
         except Exception as e:
             print(f"Error in UserDao.fetchUserByEmail. Error Massage: {e}")
             raise e
         
-    def fetchUserToken(self,session:Session,username:str):
-        try: 
-            users = session.query(User).filter(User.user_name==username)
-            return users.session_id
-        except Exception as e:
-            print(f"Error in UserDao.fetchUserToken. Error Massage: {e}")
-            raise e
-
-    def updateVerified(self,session:Session,username:str):
+    def updateVerified(self,session:Session,username:str,verified:bool):
         try:
-            user = session.query(User).filter(User.user_name == username).one()
-            user.verified = True
+            user = session.query(User).filter(User.user_name == username).one_or_none()
+            user.verified = verified
             session.commit()
         except Exception as e:
             print(f"Error in UserDao.updateVerCode. Error Massage: {e}")
             raise e
-
-    def updateVerCode(self,session:Session,username:str,code:str,code_created_on):
+        
+    def fetchUserByRole(self,session:Session,role:str) -> List[User]:
         try:
-            print("username:",username,code,code_created_on)
-            user = session.query(User).filter(User.user_name == username.strip()).one()
-            user.verification_code = code
-            user.code_created_on = code_created_on
-            session.commit()
+            users = session.query(User).filter(User.role == role).all()
+            return users
         except Exception as e:
-            print(f"Error in UserDao.updateVerCode. Error Massage: {e}")
-            raise e
-
-
-    def updateToken(self,session:Session,user_id:uuid.UUID,token:str):
-        try:
-            user = session.query(User).filter(User.id == user_id).one()
-            user.session_id = token
-            session.commit()
-        except Exception as e:
-            print(f"Error in UserDao.updateToken. Error Massage: {e}")
+            print(f"Error in UserDao.fetchUserByRole. Error Massage: {e}")
             raise e

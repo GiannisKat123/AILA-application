@@ -21,7 +21,7 @@ export const Template = () => {
         />
         <img
           src={img3}
-          alt="Upatras logo"
+          alt="University of Patras logo"
           className="max-w-full w-[440px] h-auto object-contain rounded-lg shadow-md transition-transform duration-200 ease-in-out hover:scale-105"
         />
       </div>

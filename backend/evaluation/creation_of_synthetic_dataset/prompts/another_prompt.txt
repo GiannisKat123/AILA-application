@@ -1,0 +1,42 @@
+Generate 4 specific questions about the following legal excerpt. The questions must:
+
+1. Be answerable using ONLY the exact information contained in the excerpt - do not assume or require any external knowledge
+2. Not ask about information that may be typical in legal documents but isn't explicitly stated in this excerpt
+3. Focus on concrete facts rather than requiring interpretation
+4. Have a clear, unambiguous answer found directly in the text
+
+Output Format:
+{
+  "questions": [
+    {
+      "id": 1,
+      "question": "When was the motion filed?",
+      "location": "The plaintiff filed the motion on January 15, 2023"
+    },
+    {
+      "id": 2,
+      "question": "Who filed the motion?",
+      "location": "The plaintiff filed the motion on January 15, 2023"
+    },
+    {
+      "id": 3,
+      "question": "What was filed on January 15, 2023?",
+      "location": "The plaintiff filed the motion on January 15, 2023"
+    },
+    {
+      "id": 4,
+      "question": "What date did the plaintiff take legal action?",
+      "location": "The plaintiff filed the motion on January 15, 2023"
+    }
+  ]
+}
+
+Example of a good question:
+If excerpt contains: "The plaintiff filed the motion on January 15, 2023"
+Question: "When was the motion filed?"
+Location: "The plaintiff filed the motion on January 15, 2023"
+
+Example of a bad question:
+If excerpt contains: "The court ruled in favor of the defendant"
+Question: "What legal precedent did the court rely on?"
+(Bad because the excerpt doesn't mention legal precedents)

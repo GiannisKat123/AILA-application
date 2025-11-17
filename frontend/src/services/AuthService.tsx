@@ -1,6 +1,10 @@
 import axios from 'axios';
-import api from '../api/axios';
-import type { LoginAPIOutput, UserProfile, Message, Conversations, ErrorMessage } from '../models/Types';
+import api from '../api/axios.jsx';
+import type {
+    LoginAPIOutput,
+    UserProfile,
+    ErrorMessage,
+} from '../models/Types.tsx';
 
 const loginAPI = async (username: string, password: string): Promise<LoginAPIOutput | ErrorMessage> => {
     try {
@@ -8,9 +12,7 @@ const loginAPI = async (username: string, password: string): Promise<LoginAPIOut
         return response.data;
     }
     catch (err) {
-        console.log("Error", err);
         if (axios.isAxiosError(err)) {
-            console.log(err.response?.data.detail);
             return { error_message: err.response?.data.detail };
         }
         else {
@@ -20,18 +22,16 @@ const loginAPI = async (username: string, password: string): Promise<LoginAPIOut
     }
 }
 
-const registerAPI = async (username: string, password: string, email: string): Promise<boolean | ErrorMessage> => {
+const registerAPI = async (username: string, password: string, email: string, role: string): Promise<boolean | ErrorMessage> => {
     try {
-        const response = await api.post('/register', { username: username, password: password, email: email }, { withCredentials: true });
+        const response = await api.post('/register', { username: username, password: password, email: email, role: role }, { withCredentials: true });
         return response.data;
     }
     catch (err) {
         if (axios.isAxiosError(err)) {
-            console.log(err.response?.data.detail);
             return { error_message: err.response?.data.detail };
         }
         else {
-            console.error("Non-Axios error:", err);
             return { error_message: String(err) };
         }
     }
@@ -39,24 +39,22 @@ const registerAPI = async (username: string, password: string, email: string): P
 
 const verifyAPI = async (username: string, code: string): Promise<boolean | ErrorMessage> => {
     try {
-        const response = await api.post('/verify', { username: username, code: code }, { withCredentials: true });
+        const response = await api.post('/verify', { username: username, verification_code: code }, { withCredentials: true });
         return response.data;
     }
     catch (err) {
         if (axios.isAxiosError(err)) {
-            console.log(err.response?.data.detail);
             return { error_message: err.response?.data.detail };
         }
         else {
-            console.error("Non-Axios error:", err);
             return { error_message: String(err) };
         }
     }
 }
 
-const resendCodeAPI = async (username: string, email: string): Promise<boolean | undefined> => {
+const sendCodeAPI = async (username: string, email: string, role: string): Promise<boolean | undefined> => {
     try {
-        const response = await api.post('/resend-code', { username: username, email: email }, { withCredentials: true });
+        const response = await api.post('/send_code', { username: username, email: email, role: role }, { withCredentials: true });
         return response.data;
     }
     catch (err) {
@@ -68,84 +66,25 @@ const resendCodeAPI = async (username: string, email: string): Promise<boolean |
     }
 }
 
-const userFeedbackAPI = async (message_id: string, conversation_id: string, feedback: boolean | undefined): Promise<boolean | undefined> => {
-    try {
-        await api.post('/user_feedback', { message_id: message_id, conversation_id: conversation_id, feedback: feedback }, { withCredentials: true })
-        return true;
-    }
-    catch (err) {
-        if (err instanceof Error) {
-            console.error(err.message);
-        } else {
-            console.error(err);
-        }
-    }
-}
-
-const createConversationAPI = async (conversation_name: string, username: string): Promise<Conversations | undefined> => {
-    try {
-        const response = await api.post('/new_conversation', { conversation_name: conversation_name, username: username }, { withCredentials: true })
-        return response.data;
-    }
-    catch (err) {
-        if (err instanceof Error) {
-            console.error(err.message);
-        } else {
-            console.error(err);
-        }
-    }
-}
-
-const createMessageAPI = async (conversation_name: string, text: string, role: string, id: string, feedback: boolean | null): Promise<Message | undefined> => {
-    console.log({ conversation_name: conversation_name, text: text, role: role, id: id, feedback: feedback })
-    try {
-        const response = await api.post('/new_message', { conversation_name: conversation_name, text: text, role: role, id: id, feedback: feedback }, { withCredentials: true });
-        return response.data
-    }
-    catch (err) {
-        if (err instanceof Error) {
-            console.error(err.message);
-        } else {
-            console.error(err);
-        }
-    }
-}
-
-const getConversationsAPI = async (username: string): Promise<Conversations[] | undefined> => {
-    try {
-        const response = await api.get('/user_conversations', {
-            params: { username },
-            withCredentials: true
-        });
-        return response.data
-    }
-    catch (err) {
-        if (err instanceof Error) {
-            console.error(err.message);
-        } else {
-            console.error(err);
-        }
-    }
-}
-
-const getUserMessagesAPI = async (conversation_name: string): Promise<Message[] | undefined> => {
-    const response = await api.get('/messages', {
-        params: { conversation_name },
-        withCredentials: true
-    });
-    console.log("Response: ", response.data)
-    return response.data;
-}
 
 const verifyUser = async (): Promise<UserProfile | undefined> => {
-    const response = await api.get('/get_user', { withCredentials: true });
-    return response.data;
+    try {
+        const response = await api.get('/get_user', { withCredentials: true });
+        return response.data;
+    }
+    catch (err) {
+        if (err instanceof Error) {
+            console.error(err.message);
+        } else {
+            console.error(err);
+        }
+    }
 }
 
 
-const requestAPI = async (userQuery: string): Promise<boolean | void> => {
+const requestAPI = async (userQuery: string): Promise<boolean | undefined> => {
     try {
-        const response = await api.post('/request', { 'message': userQuery }, { withCredentials: true });
+        const response = await api.post('/request', { message: userQuery }, { withCredentials: true });
         return response.data;
     }
     catch (err) {
@@ -160,16 +99,15 @@ const requestAPI = async (userQuery: string): Promise<boolean | void> => {
 const logoutAPI = async (): Promise<boolean | undefined> => {
     try {
         const response = await api.post('/logout')
-        if (response) {
-            return true;
-        }
+        if (response) return true;
     }
     catch (err) {
         console.error("Logout failed:", err);
         return false;
     }
-
 }
 
-export { loginAPI, getUserMessagesAPI, userFeedbackAPI, resendCodeAPI, verifyAPI, logoutAPI, registerAPI, requestAPI, verifyUser, createConversationAPI, createMessageAPI, getConversationsAPI };
+
+
+export { loginAPI, sendCodeAPI, verifyAPI, logoutAPI, registerAPI, requestAPI, verifyUser };
 

@@ -1,66 +1,19 @@
-import { useState, useRef, useEffect } from "react";
-import { useAuth } from "../context/AuthContext";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
+import useLoginLogic from "../funcs/login_utils/funcs";
 
 const Login = () => {
-    const [username, setUsername] = useState("");
-    const [password, setPassword] = useState("");
-    const { loginUser, resendCode } = useAuth();
-    const [errorMsg, setErrorMessage] = useState("");
-    const [isLoading, setIsLoading] = useState(false);
-
-    const userRef = useRef<HTMLInputElement>(null);
-    const errRef = useRef<HTMLParagraphElement>(null);
-    const navigate = useNavigate();
-
-    useEffect(() => {
-        userRef.current?.focus();
-    }, []);
-
-    // useEffect(() => {
-    //     setErrorMessage("");
-    // }, [username, password]);
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setIsLoading(true);
-        setErrorMessage("");
-
-        try {
-            const res = await loginUser(username, password);
-
-            if (res && "user_details" in res) {
-                const { verified, email } = res.user_details;
-                if (verified) {
-                    navigate("/chat");
-                } else {
-                    await resendCode(username, email);
-                    navigate("/register");
-                }
-            } else if (res && "error_message" in res) {
-                setErrorMessage(res.error_message);
-                errRef.current?.focus();
-                setUsername("");
-                setPassword("");
-            }
-            else {
-                // Login failed — wrong credentials, user not found, etc.
-                setErrorMessage("Login failed. Something happened");
-                errRef.current?.focus();
-                setUsername("");
-                setPassword("");
-            }
-        } catch (err) {
-            console.error("Login error:", err);
-            setErrorMessage(String(err));
-            errRef.current?.focus();
-            setUsername("");
-            setPassword("");
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
+    const {
+        username,
+        setUsername,
+        password,
+        setPassword,
+        errorMsg,
+        isLoading,
+        userRef,
+        errRef,
+        handleSubmit,
+        setErrorMessage
+    } = useLoginLogic();
 
     return (
         <div className="min-h-screen bg-gray-100 text-gray-800 px-4 py-8">
